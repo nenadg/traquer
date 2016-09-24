@@ -1,9 +1,9 @@
 var fs         = require('fs'),
     compressor = require('node-minify'),
     walk       = require('walk'),
-    src        = 'public/src',
-    out        = 'public/js/out.joined.js',
-    opt        = 'public/js/opt.min.js',
+    src        = 'public/lib',
+    out        = 'public/lib/traquer.joined.js',
+    opt        = 'public/lib/traquer.min.js',
     walker     = walk.walk(src, { followLinks: false }),
     files      = [];
 
@@ -65,64 +65,3 @@ var spin = function(message){
       i++;
    }, 50);
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-////////////////
-    //jsfiles = JSON.parse(fs.readFileSync('frontend/dependencies/scripts.json', 'utf8')),
-    //cssfiles = JSON.parse(fs.readFileSync('frontend/dependencies/styles.json', 'utf8'));
-    
-
-/*fs.writeFile('variant', variant, function(err) {
-    if(err) {
-        return console.log(err);
-    }
-    switch(variant){
-        case 'refresh':
-            // TODO: add unalocated files to dependency list
-        break;
-        case 'dev':
-            console.log('Development variant passed.');
-        break;
-        case 'prod':
-            console.log('Production variant passed.');
-            console.log('Compressing files...');
-
-            new compressor.minify({
-                type: 'yui-css',
-                fileIn: cssfiles.list,
-                fileOut: 'frontend/release/scrm.min.css',
-                callback: function(err, min){
-                    if(err)
-                        console.log(err);
-
-                    console.log("Css compressed and saved at ", '/frontend/release/scrm.min.css');
-                }
-            });
-             
-            new compressor.minify({
-                type: 'gcc',
-                language: 'ECMASCRIPT5',
-                fileIn: jsfiles.list,
-                fileOut: 'frontend/release/scrm.min.js',
-                callback: function(err, min){
-                    if(err)
-                        console.log(err);
-                    
-                    console.log("Scripts generated and saved at ", '/frontend/release/scrm.min.js');
-                }
-            });
-        break;
-    }
-});*/

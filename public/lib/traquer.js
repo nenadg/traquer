@@ -141,20 +141,24 @@ Traquer.prototype = {
                 })()
             };
 
-            trackingObject.selector = self.createSelector.call(trackingObject);
+            // don't click your controls
+            if(trackingObject.id != 'traquer-playstop'){
 
-            // if selector is valid, collect trackingObject
-            if(document.querySelectorAll(trackingObject.selector)){
+                trackingObject.selector = self.createSelector.call(trackingObject);
 
-                delete trackingObject.classList;
-                delete trackingObject.attrs;
-                delete trackingObject.targetType;
+                // if selector is valid, collect trackingObject
+                if(document.querySelectorAll(trackingObject.selector)){
 
-                self.recordedEvents.push(trackingObject);
-                this.index++;
+                    delete trackingObject.classList;
+                    delete trackingObject.attrs;
+                    delete trackingObject.targetType;
 
-                if(this.logging)
-                    console.log(trackingObject);
+                    self.recordedEvents.push(trackingObject);
+                    this.index++;
+
+                    if(this.logging)
+                        console.log(trackingObject);
+                }
             }
         }
 
@@ -311,7 +315,7 @@ Traquer.prototype = {
             fakeCursor.style.top  = eventInfo.y + 'px';
             fakeCursor.style.left = eventInfo.x + 'px';
 
-            if(!selector.element){
+            if(!selector){
                 console.warn('[f] Cant find element by dinosaurus selector method, probably not there.');
             }
 
