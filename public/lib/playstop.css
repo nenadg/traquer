@@ -1,7 +1,7 @@
 .playstop {
   position: absolute;
   bottom: 10%;
-  right: 7%;
+  left: 7%;
   font-size: 28px;
   height: 40px;
   width: 40px;
@@ -34,7 +34,7 @@
 }
 
 .playstop:hover{
-  border-left: 2px solid rgba(239, 33, 0, 0.5);
+  border-left: 2px solid rgba(239, 33, 0, 0.7);
   -webkit-animation: rotation 2s infinite cubic-bezier(1, 0, 0.2, 3);
   -moz-animation: rotation 2s infinite cubic-bezier(1, 0, 0.2, 3);
   -o-animation: rotation 2s infinite cubic-bezier(1, 0, 0.2, 3);
@@ -57,7 +57,8 @@
   -moz-animation: squared .5s infinite;
   -o-animation: squared .5s infinite;
   animation: squared .5s infinite;
-  background: rgba(0,0,0, 0.7);
+  background: rgba(19, 173, 9, 0.7);
+  border: 2px solid rgba(19, 173, 9, 0.7);
 }
 
 @-webkit-keyframes squared {

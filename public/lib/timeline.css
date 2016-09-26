@@ -1,0 +1,98 @@
+ol.timeline-container {
+    position: absolute;
+    bottom: 11%;
+    left: 11%;
+
+    height: 2px;
+    background: rgba(153, 187, 34, 0.55);
+    font-weight: normal;
+    width: 700px;
+}
+ol.timeline-container::before,
+ol.timeline-container::after {
+    content: "";
+    position: absolute;
+    top: -9px;
+    display: block;
+    width: 0;
+    height: 0;
+    border-radius: 100%;
+    border: 9px solid #9b2;
+}
+ol.timeline-container::before {
+    left: -5px;
+    border: none;
+}
+ol.timeline-container::after {
+    right: -10px;
+    border: 10px solid transparent;
+    border-left: 20px solid #9b2;
+}
+
+/* ---- Timeline elements ---- */
+
+ol.timeline-container li {
+    position: absolute;
+    top: -77px;
+    display: inline-block;
+    float: left;
+    width: 150px;
+    transform: rotate(-45deg);
+    font: bold 14px arial;
+    color: #000;
+}
+ol.timeline-container li::before {
+    content: "";
+    position: absolute;
+    top: 3px;
+    left: -29px;
+    display: block;
+    width: 12px;
+    height: 12px;
+    border: 1px solid #9b2;
+    border-radius: 10px;
+    background: #eee;
+}
+
+ol.timeline-container span.tl-type {
+    display: none;
+}
+
+ol.timeline-container li:hover span.tl-type {
+    color: #000;
+    display: inline;
+}
+
+/* selector */
+ol.timeline-container span.tl-selector {
+    display: none;
+    font-family: monospace;
+    font-size: 10px;
+    font-weight: normal;
+    line-height: 10px;
+    padding-left: 20px;
+}
+
+ol.timeline-container li:hover span.tl-selector {
+    display: block;
+}
+
+/* ---- Hover effects ---- */
+
+ol.timeline-container li:hover {
+  cursor: pointer;
+  color: #28e;
+  color: #000;
+}
+ol.timeline-container li:hover::before {
+    top: 1px;
+    left: -31px;
+    width: 8px;
+    height: 8px;
+    border-width: 5px;
+    border-color: #28e;
+}
+ol.timeline-container li:hover .details {
+    display: block;
+  color: #444;
+}
