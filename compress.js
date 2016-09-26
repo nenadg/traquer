@@ -3,7 +3,7 @@ var fs         = require('fs'),
     walk       = require('walk'),
     src        = 'public/lib',
     out        = 'public/lib/traquer.joined.js',
-    opt        = 'public/lib/traquer.min.js',
+    opt        = 'public/traquer.min.js',
     walker     = walk.walk(src, { followLinks: false }),
     files      = [];
 

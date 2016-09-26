@@ -14,12 +14,12 @@ var Traquer = function() {
     this.recordedEvents  = [];
     this.previousElement = null;
 
-    this.eventNames      = ['mousemove',   'mouseenter',      'mouseleave',      'mouseover',          'mousedown', 
-                          'mouseup',     'mouseout',        'click',           'scroll',             'contextmenu', 
-                          'wheel',       'focus',           'focusin',         'focusout',           'DOMFocusIn', 
-                          'input',       'textinput',       'keypress',        'keydown',            'keyup', 
-                          'change',      'DOMFocusOut',     'selectstart',     'selectionchange',    'select',
-                          'DOMActivate'];
+    this.eventNames      = [/*'mousemove',*/   'mouseenter',      'mouseleave',      'mouseover',          'mousedown', 
+                            'mouseup',     'mouseout',        'click',           'scroll',             'contextmenu', 
+                            'wheel',       'focus',           'focusin',         'focusout',           'change', 
+                            'input',       'textinput',       'keypress',        'keydown',            'keyup', 
+                            'DOMFocusIn',  'DOMFocusOut',     'selectstart',     'selectionchange',    'select',
+                            'DOMActivate'];
 }
 
 Traquer.prototype = {
@@ -142,7 +142,7 @@ Traquer.prototype = {
             };
 
             // don't click your controls
-            if(trackingObject.id != 'traquer-playstop'){
+            if(trackingObject.id != 'traquer-recorder'){
 
                 trackingObject.selector = self.createSelector.call(trackingObject);
 
