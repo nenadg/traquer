@@ -1,7 +1,7 @@
 ol.timeline-container {
     position: absolute;
     z-index: 2147483640;
-    bottom: 108px;
+    bottom: 118px;
     left: 143px;
     height: 2px;
     background: rgba(153, 187, 34, 0.3);
@@ -57,7 +57,7 @@ ol.timeline-container li:before {
 }
 
 ol.timeline-container li.default {
-    top: -57px;
+    top: -37px;
 }
 
 ol.timeline-container li.default:before {
@@ -70,6 +70,14 @@ ol.timeline-container li.blue {
 
 ol.timeline-container li.blue:before {
     border: 1px solid #28e;
+}
+
+ol.timeline-container li.green {
+    top: -57px;
+}
+
+ol.timeline-container li.green:before {
+    border: 1px solid rgba(5, 216, 99, 1);
 }
 
 ol.timeline-container li.red:before {
