@@ -17,10 +17,9 @@ var EventBase = function(traquer) {
 
 EventBase.prototype = {
     mouseEvents: function(eventInfo, element) {
-      var evt = new MouseEvent(eventInfo.type, eventInfo.raw);
-
-      this.traquer.toggleStopPropagation(eventInfo, evt);
-      element.dispatchEvent(evt);
+        var evt = new MouseEvent(eventInfo.type, eventInfo.raw);
+        this.traquer.toggleStopPropagation(eventInfo, evt);
+        element.dispatchEvent(evt);
     },
 
     wheelEvents: function(eventInfo, element) {
@@ -34,10 +33,11 @@ EventBase.prototype = {
     },
 
     focusEvents: function(eventInfo, element) {
+     
 
       if(!eventInfo)
         return;
-
+    
       var type = (eventInfo.type.indexOf('FocusIn') > -1) ? 'focus' : 'blur',
         either = (eventInfo.type.indexOf('FocusIn') > -1) || (eventInfo.type.indexOf('FocusOut') > -1);
 
@@ -49,58 +49,16 @@ EventBase.prototype = {
         }, 1);
       }
 
+      var evt = new FocusEvent(eventInfo.type, eventInfo.raw);
 
-
-      element.dispatchEvent(new FocusEvent(type, element));
+      element.dispatchEvent(evt);
+     
     },
 
     inputEvents: function(eventInfo, element){
-      var event = eventInfo.type;
-      var rawEvent = eventInfo.raw;
-      var character = eventInfo.value;
-
-      rawEvent.srcElement = element;
-      rawEvent.target = element;
-
-      ///console.log(character);
-        console.log(character);
-        rawEvent.keyCode = character.charCodeAt(character.length -1);
-        rawEvent.code = 'Key' + character[character.length -1];
-
-
-      //var evt = (typeof InputEvent !== 'undefined') ? new InputEvent('input', rawEvent) : new Event('input', rawEvent);
-
-      //evt.keyCode = (character) ? character.charCodeAt(character.length -1) : '\0'.charCodeAt(0);
-      //evt.code = 'Key' + character[character.length -1].toUpperCase();
-
-      /*evt = this.traquer.fakeEvents.textEvents(eventInfo, element);
-      console.log('keyEvents:quasiInput');*/
-
-      // takes last
-      //textmatch = character? character[character.length -1]: character;//rawEvent.code.substr(3);
-      //eventInfo.value = textmatch;
-      // NOTE: simulate key events via text events
-      // it's either a bug as reported here:
-      // http://stackoverflow.com/questions/8942678/keyboardevent-in-chrome-keycode-is-0/12522752#12522752
-      // or later added as security feature
-      /*if(!element.keyStack){
-        console.log('keyEvents:text:out');
-        element.value = '';
-
-        evt =  new Event(eventInfo.raw);//this.traquer.fakeEvents.textEvents(eventInfo, element);
-        element.keyStack = [];
-        element.keyStack.push(textmatch);
-      }
-      else if(element.keyStack.indexOf(textmatch) == -1){
-        console.log('keyEvents:text:in');*/
-        evt = this.traquer.fakeEvents.textEvents(eventInfo, element);
-
-      /*  element.keyStack.push(textmatch);
-      }*/
-
-
-
-      element.dispatchEvent(evt);
+        var inputEvent = (typeof InputEvent != 'undefined') ? InputEvent : Event;
+        var evt = new inputEvent(eventInfo.type, eventInfo.raw);
+        element.dispatchEvent(evt);
     },
 
     textEvents: function(eventInfo, element){
@@ -197,8 +155,8 @@ EventBase.prototype = {
     },
 
     UIEvents: function(eventInfo, element) {
-      var evt = new UIEvent(eventInfo.raw);
-
+      var evt = new UIEvent(eventInfo.type, eventInfo.raw);
+      console.log(eventInfo.type, evt)
       element.dispatchEvent(evt);
     },
 
@@ -215,9 +173,8 @@ EventBase.prototype = {
       element.dispatchEvent(evt);
     },
 
-    empty: function(eventInfo, element){
-      var evt = document.createEvent('HTMLEvents');
-      evt.initEvent(eventInfo.raw, true, true );
+    event: function(eventInfo, element){
+      var evt = new Event(eventInfo.type, eventInfo.raw);
       element.dispatchEvent(evt);
     }
 }

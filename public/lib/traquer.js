@@ -65,6 +65,11 @@ Traquer.prototype = {
 
         self.isRecording = false;
 
+        if(self.playerTarget){
+            var stopEvent = new Event('stop');
+            self.playerTarget.dispatchEvent(stopEvent);
+        }
+
         return this.recordedEvents;
     },
 
@@ -103,6 +108,7 @@ Traquer.prototype = {
 
                     for(i in evt.target.attributes){
                         if(evt.target.attributes.hasOwnProperty(i)){
+                            
                             if(evt.target.attributes[i].name !== 'style' && evt.target.attributes[i].value ){
 
                                 // DO NOT match html in tags  (/<.*?[\s\S]*?>[\s\S]*?<\/.*>/g)
@@ -120,9 +126,11 @@ Traquer.prototype = {
                                     attributes.push(attribute);
                                 }
 
-                            } else if(evt.target.attributes[i].name !== 'style'){
-                                attributes.push(evt.target.attributes[i].name);
-                            }
+                            } 
+                            //else if(evt.target.attributes[i].name !== 'style'){
+                            //    
+                            //    attributes.push(evt.target.attributes[i].name);
+                            //}
                         }
                     }
 
@@ -165,6 +173,172 @@ Traquer.prototype = {
         // ... later remove mouseDown condition
         if(evt.type == 'mouseup')
             self.isMouseDown = false;
+    },
+
+    eventsScheduler: function() {
+        var self = this;
+
+        if (self.eventsInfo && self.eventsEmitted < self.eventsInfo.length) {
+            var eventInfo = self.eventsInfo[this.eventsEmitted];
+            var previousEventInfo = self.eventsInfo[this.eventsEmitted -1];
+            var scheduleTime = previousEventInfo ? eventInfo.time - previousEventInfo.time : eventInfo.time;
+
+            var fireTimeout = setTimeout(function() {
+                self.eventEmitter(eventInfo);
+                self.eventsEmitted++;
+                self.eventsScheduler();
+                clearTimeout(fireTimeout);
+            }, scheduleTime);
+        }
+        else {
+            self.isPlaying = false;
+            self.removeFakeCursor();
+        }
+    },
+
+    play: function(eventsInfo) {
+        if (this.isPlaying)
+            return;
+
+        this.isPlaying = true;
+
+        this.createFakeCursor();
+        this.eventsEmitted = 0;
+        this.eventsInfo = eventsInfo;
+        this.eventsScheduler();
+    },
+
+    eventEmitter: function(eventInfo) {
+        var self = this;
+
+        if (eventInfo){
+            var selector     = document.querySelector(eventInfo.selector),
+                eventElement = selector ? selector : document.elementFromPoint(eventInfo.x, eventInfo.y), // fallback
+                fakeCursor   = self.getFakeCursor(),
+                events       = new EventBase(self);
+
+            fakeCursor.style.top  = eventInfo.y + 'px';
+            fakeCursor.style.left = eventInfo.x + 'px';
+
+            if(!selector){
+                console.warn('[f] Cant find element by dinosaurus selector method, probably not there.', eventInfo.selector);
+            }
+
+            if(!this.previousElement){
+                this.previousElement = eventElement.parentElement;
+            }
+            else {
+                var isChild     = this.matchChild(this.previousElement, eventElement);
+                var prevoff     = this.getOffset(this.previousElement);
+                var curroff     = this.getOffset(eventElement);
+                var box         = { x1: prevoff.x, x2: prevoff.x + prevoff.w, y1: prevoff.y, y2: prevoff.y + prevoff.h };
+                var closeOffset = this.pointRectangleIntersection(curroff, box)
+
+                if(closeOffset || isChild){
+                    eventInfo.stopPropagationFlag = true;
+                }
+
+                this.previousElement = null;
+            }
+
+            var eventEmitter;
+
+            switch(eventInfo.type) {
+                case 'mousemove':
+                case 'mouseenter':
+                case 'mouseleave':
+                case 'mouseover':
+                case 'mousedown':
+                case 'mouseup':
+                case 'mouseout':
+                case 'click':
+                case 'contextmenu':
+               
+                    events.mouseEvents(eventInfo, eventElement);
+                    break;
+                case 'wheel':
+                    events.wheelEvents(eventInfo, eventElement);
+                    break;
+                case 'focus':
+                case 'focusin':
+                case 'focusout':
+                
+                    events.focusEvents(eventInfo, eventElement);
+                    break;
+                case 'input':
+                case 'textinput':
+                    events.inputEvents(eventInfo, eventElement);
+                    break;
+                case 'nothing':
+                    events.keyEvents(eventInfo, eventElement);
+                    break;
+                case 'change':
+                    events.event(eventInfo, eventElement);
+                    break;
+                case 'selectstart':
+                case 'selectionchange':
+                    events.focusEvents(eventInfo, eventElement);  // was .selectionEvents
+                    break;
+                case 'scroll':
+                case 'select':
+                
+                case 'keypress':
+                case 'keydown':
+                case 'keyup':
+                case 'DOMActivate':
+                case 'DOMFocusIn':
+                case 'DOMFocusOut':
+
+                case 'DOMSubtreeModified':
+                case 'DOMCharacterDataModified':
+                    events.UIEvents(eventInfo, eventElement);
+                    break;
+            }
+
+            //if(self.trackTarget){
+                
+                var moveEvent = new CustomEvent('move', { detail: { eventInfo: eventInfo, last: self.recordedEvents[self.recordedEvents.length - 1].time } });
+                self.trackTarget.dispatchEvent(moveEvent);
+            //}
+        }
+
+        if(self.recordedEvents.indexOf(eventInfo) == self.recordedEvents.length -1){
+            self.stop();
+        }
+    },
+
+    getFakeCursor: function() {
+        return this.fakeCursor || this.createFakeCursor();
+    },
+
+    createFakeCursor: function() {
+        this.fakeCursor = document.createElement('div');
+
+        this.fakeCursor.style.height       = '10px';
+        this.fakeCursor.style.width        = '10px';
+        this.fakeCursor.style.background   = 'red';
+        this.fakeCursor.style.opacity      = '0.5';
+        this.fakeCursor.style.display      = 'block';
+        this.fakeCursor.style.position     = 'fixed';
+        this.fakeCursor.style.borderRadius = '10px';
+        this.fakeCursor.style.zIndex       = '2147483647';
+
+        document.body.appendChild(this.fakeCursor);
+    },
+
+    removeFakeCursor: function() {
+        if (this.fakeCursor) {
+            document.body.removeChild(this.fakeCursor);
+            delete this.fakeCursor;
+        }
+    },
+
+    toggleStopPropagation: function(eventInfo, evt){
+        var preventParents = ['mouseover', 'mouseenter', 'mouseleave', 'mouseout'];
+
+        if(eventInfo.stopPropagationFlag && preventParents.indexOf(eventInfo.type) > -1 ){
+            evt.stopPropagation();
+        }
     },
 
     createSelector: function(){
@@ -217,30 +391,10 @@ Traquer.prototype = {
         }
 
         if(self.id) {
-            selectorString += ', ';
-            selectorString += '#' + self.id;
+            selectorString += '#' + self.id ;
         }
 
         return selectorString;
-    },
-
-    eventsScheduler: function() {
-        var self = this;
-
-        if (self.eventsInfo && self.eventsEmitted < self.eventsInfo.length) {
-            var eventInfo = self.eventsInfo[this.eventsEmitted];
-            var previousEventInfo = self.eventsInfo[this.eventsEmitted -1];
-            var scheduleTime = previousEventInfo ? eventInfo.time - previousEventInfo.time : eventInfo.time;
-            setTimeout(function() {
-                self.eventEmitter(eventInfo);
-                self.eventsEmitted++;
-                self.eventsScheduler();
-            }, scheduleTime);
-        }
-        else {
-            self.isPlaying = false;
-            self.removeFakeCursor();
-        }
     },
 
     getIntersection: function(firstElement, secondElement) {
@@ -289,135 +443,5 @@ Traquer.prototype = {
             }
 
         return found;
-    },
-
-    play: function(eventsInfo) {
-        if (this.isPlaying)
-            return;
-
-        this.isPlaying = true;
-
-        this.createFakeCursor();
-        this.eventsEmitted = 0;
-        this.eventsInfo = eventsInfo;
-        this.eventsScheduler();
-    },
-
-    eventEmitter: function(eventInfo) {
-        var self = this;
-
-        if (eventInfo){
-            var selector     = document.querySelector(eventInfo.selector),
-                eventElement = selector ? selector : document.elementFromPoint(eventInfo.x, eventInfo.y), // fallback
-                fakeCursor   = self.getFakeCursor(),
-                events       = new EventBase(self);
-
-            fakeCursor.style.top  = eventInfo.y + 'px';
-            fakeCursor.style.left = eventInfo.x + 'px';
-
-            if(!selector){
-                console.warn('[f] Cant find element by dinosaurus selector method, probably not there.');
-            }
-
-            if(!this.previousElement){
-                this.previousElement = eventElement.parentElement;
-            }
-            else {
-                var isChild     = this.matchChild(this.previousElement, eventElement);
-                var prevoff     = this.getOffset(this.previousElement);
-                var curroff     = this.getOffset(eventElement);
-                var box         = { x1: prevoff.x, x2: prevoff.x + prevoff.w, y1: prevoff.y, y2: prevoff.y + prevoff.h };
-                var closeOffset = this.pointRectangleIntersection(curroff, box)
-
-                if(closeOffset || isChild){
-                    eventInfo.stopPropagationFlag = true;
-                }
-
-                this.previousElement = null;
-            }
-
-            var eventEmitter;
-
-            switch(eventInfo.type) {
-                case 'mousemove':
-                case 'mouseenter':
-                case 'mouseleave':
-                case 'mouseover':
-                case 'mousedown':
-                case 'mouseup':
-                case 'mouseout':
-                case 'click':
-                case 'contextmenu':
-                    events.mouseEvents(eventInfo, eventElement);
-                    break;
-                case 'wheel':
-                    events.wheelEvents(eventInfo, eventElement);
-                    break;
-                case 'focus':
-                case 'focusin':
-                case 'focusout':
-                case 'DOMFocusIn':
-                case 'DOMFocusOut':
-                    events.focusEvents(eventInfo, eventElement);
-                    break;
-                case 'input':
-                case 'textinput':
-                    events.inputEvents(eventInfo, eventElement);
-                    break;
-                case 'keypress':
-                case 'keydown':
-                case 'keyup':
-                    events.keyEvents(eventInfo, eventElement);
-                    break;
-                case 'change':
-                    events.empty(eventInfo, eventElement);
-                    break;
-                case 'selectstart':
-                case 'selectionchange':
-                    events.focusEvents(eventInfo, eventElement);  // was .selectionEvents
-                    break;
-                case 'scroll':
-                case 'select':
-                case 'DOMActivate':
-                case 'DOMSubtreeModified':
-                case 'DOMCharacterDataModified':
-                    events.UIEvents(eventInfo, eventElement);
-                    break;
-            }
-        }
-    },
-
-    getFakeCursor: function() {
-        return this.fakeCursor || this.createFakeCursor();
-    },
-
-    createFakeCursor: function() {
-        this.fakeCursor = document.createElement('div');
-
-        this.fakeCursor.style.height       = '10px';
-        this.fakeCursor.style.width        = '10px';
-        this.fakeCursor.style.background   = 'red';
-        this.fakeCursor.style.opacity      = '0.5';
-        this.fakeCursor.style.display      = 'block';
-        this.fakeCursor.style.position     = 'fixed';
-        this.fakeCursor.style.borderRadius = '10px';
-        this.fakeCursor.style.zIndex       = '2147483647';
-
-        document.body.appendChild(this.fakeCursor);
-    },
-
-    removeFakeCursor: function() {
-        if (this.fakeCursor) {
-            document.body.removeChild(this.fakeCursor);
-            delete this.fakeCursor;
-        }
-    },
-
-    toggleStopPropagation: function(eventInfo, evt){
-        var preventParents = ['mouseover', 'mouseenter', 'mouseleave', 'mouseout'];
-
-        if(eventInfo.stopPropagationFlag && preventParents.indexOf(eventInfo.type) > -1 ){
-            evt.stopPropagation();
-        }
     }
 }

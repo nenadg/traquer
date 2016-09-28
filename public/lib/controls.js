@@ -21,19 +21,25 @@ var Controls = function(){
 Controls.prototype.recording = function(controls, e){
     var self     = controls,
         traquer  = self.traquer,
-        recorder = e.target;
+        recorder = e.target,
+        player   = document.querySelector('.player');
     
     if(!traquer.isRecording){
         traquer.start();
         recorder.className = 'recorder squared';
         return;
     }
+
+    if(player){
+        //todo
+        document.body.removeChild(player);
+    }
     
     recorder.className = 'recorder';
     traquer.stop();
 
     self.timeline.call(self);
-    self.timeline.call(self);
+    self.player.call(self);
 }
 
 Controls.prototype.timeline = function(){
@@ -54,6 +60,8 @@ Controls.prototype.timeline = function(){
         tlcWidth = tlcBox.width,
         last     = events[events.length -1].time;
 
+    self.tlcWidth = tlcWidth;
+
     var i, lastTimeLine, baseZindex = 2147000000;
     for (i in events){
         if(events.hasOwnProperty(i)){
@@ -66,13 +74,11 @@ Controls.prototype.timeline = function(){
                                         ' class="{css-class}">',
                                         '<div class="tl-type" style="z-index: ' + (baseZindex++) + '">',
                                             '{title}',
-                                        '</div><br/>',
+                                        '</div>',
                                         '<div class="tl-selector" style="z-index: ' + (baseZindex++) + '">',
                                             '{selector}',
                                         '</div>',
                                     '</li>'].join('');
-
-            
 
             var colorClass   = event.type == 'click' || event.type == 'keydown' ||
                                event.type == 'keyup' || event.type == 'keypress' ? 'red' : 
@@ -120,5 +126,71 @@ Controls.prototype.timeline = function(){
 }
 
 Controls.prototype.player = function(){
+    var self              = this,
+        traquer           = self.traquer,
+        events            = traquer.recordedEvents,
+        timelineContainer = document.querySelector('ol.timeline-container'),
+        timelineTrack     = document.querySelector('.timeline-track'),
+        player            = document.querySelector('.player');
 
+    if(!player){
+        player           = document.createElement('div');
+        player.className = 'player';
+        document.body.appendChild(player);
+
+        player.innerHTML = '<div class="play"></div>';
+
+        traquer.playerTarget = player;
+
+        player.addEventListener('stop', function(e){
+            player.className = 'player';
+        });
+
+        player.addEventListener('click', function(events, e){
+            var self = this;
+
+            if(!self.isPlaying){
+                player.className += ' playing';
+                self.play(events);
+                return;
+            }
+
+            self.stop();
+            player.className = 'player';
+
+        }.bind(traquer, events));
+    }
+
+    if(!timelineTrack){
+        timelineTrack           = document.createElement('div');
+        timelineTrack.className = 'timeline-track';
+        document.body.appendChild(timelineTrack);
+
+        timelineTrack.innerHTML = [
+            '<div class="current-event">',
+            '</div>'
+        ].join('');
+
+        traquer.trackTarget = timelineTrack;
+
+        timelineTrack.addEventListener('move', function(e){
+            var eventInfo    = e.detail.eventInfo,
+                last         = e.detail.last,
+                time         = eventInfo.time,
+                tlcWidth     = self.tlcWidth,
+                currentEvent = document.querySelector('.current-event');
+            
+            var  percentInTime    = parseInt(time / last * 100),
+                percentInTimeLine = parseInt(percentInTime * tlcWidth / 100) + 152;
+
+            e.target.style.cssText = 'left: ' + percentInTimeLine + 'px;';
+            //percentInTimeLine > lastTimeLine - 10 && percentInTimeLine < lastTimeLine + 10
+            if(self.previousTime > time - 10 && self.previousTime < time + 10)
+                currentEvent.innerHTML += eventInfo.type + ' <br />';
+            else
+                currentEvent.innerHTML = eventInfo.type + ' <br />';
+
+            self.previousTime = time;
+        });
+    }
 }

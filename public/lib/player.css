@@ -1,0 +1,46 @@
+.player {
+  position: fixed;
+  bottom: 115px;
+  left: 60px;
+  font-size: 28px;
+  height: 30px;
+  width: 30px;
+  color: rgba(239, 33, 0, 0.7);
+  cursor: pointer;;
+  border-left: 2px solid rgba(153, 187, 34, 0.7);
+  border-right: 2px solid rgba(153, 187, 34, 0.7);
+  border-bottom: 2px solid rgba(153, 187, 34, 0.7);
+  border-top: 2px solid rgba(153, 187, 34, 0.7);
+  border-radius: 100%;
+}
+
+.player:after {
+  position: absolute;
+  content: '';
+}
+
+.player .play {
+    width: 0px;
+    height: 0px;
+    border-top: 10px solid transparent;
+    border-bottom: 10px solid transparent;
+    border-left: 10px solid rgba(153, 187, 34, 0.4);
+    border-radius: 50px;
+    margin: 5px;
+    margin-left: 11px;
+}
+
+.player .play:hover {
+    border-left: 10px solid rgba(153, 187, 34, 0.8);
+}
+
+.player.playing {
+  border-left: 2px solid rgba(111, 111, 111, 0.7);
+  border-right: 2px solid rgba(111, 111, 111, 0.7);  
+  border-bottom: 2px solid rgba(111, 111, 111, 0.7);
+  border-top: 2px solid rgba(111, 111, 111, 0.3);
+}
+
+.player.playing .play {
+    border-left: 10px solid rgba(111, 111, 111, 0.8);
+}
