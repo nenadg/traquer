@@ -14,12 +14,16 @@ var Traquer = function() {
     this.recordedEvents  = [];
     this.previousElement = null;
 
-    this.eventNames      = [/*'mousemove',*/   'mouseenter',      'mouseleave',      'mouseover',          'mousedown', 
+    this.eventNames      = ['mousemove',   'mouseenter',      'mouseleave',      'mouseover',          'mousedown', 
                             'mouseup',     'mouseout',        'click',           'scroll',             'contextmenu', 
                             'wheel',       'focus',           'focusin',         'focusout',           'change', 
                             'input',       'textinput',       'keypress',        'keydown',            'keyup', 
                             'DOMFocusIn',  'DOMFocusOut',     'selectstart',     'selectionchange',    'select',
                             'DOMActivate'];
+
+    var traquerBase = document.createElement('div');
+    traquerBase.className   = 'traquer-base';
+    document.body.appendChild(traquerBase);
 }
 
 Traquer.prototype = {
@@ -47,8 +51,8 @@ Traquer.prototype = {
         });
 
         document.addEventListener('mousemove', function(event){
-            self.mousePosition.x = event.x;
-            self.mousePosition.y = event.y;
+            self.mousePosition.x = event.clientX;
+            self.mousePosition.y = event.clientY;
         });
 
         if(log)
@@ -104,55 +108,17 @@ Traquer.prototype = {
                 targetType : evt.target.tagName? evt.target.tagName.toLowerCase(): null,
                 value      : evt.target.value || evt.target.text,
                 attrs      : (function(){
-                    var attributes = [], i;
-
-                    for(i in evt.target.attributes){
-                        if(evt.target.attributes.hasOwnProperty(i)){
-                            
-                            if(evt.target.attributes[i].name !== 'style' && evt.target.attributes[i].value ){
-
-                                // DO NOT match html in tags  (/<.*?[\s\S]*?>[\s\S]*?<\/.*>/g)
-                                // DO NOT match urls          (/(http:).*/g
-                                // DO NOT collect IDs
-                                // DO NOT match data-         (/data-.*/g)
-
-                                var htmlMatch = evt.target.attributes[i].value.match(/<.*?[\s\S]*?>[\s\S]*?<\/.*>/g),
-                                    urlMatch  = evt.target.attributes[i].value.match(/(http:).*/g),
-                                    dataMatch = evt.target.attributes[i].name.match(/data-.*/g),
-                                    idMatch   = evt.target.attributes[i].name == 'id';
-
-                                if(!idMatch && (htmlMatch == null) && (urlMatch == null) && (dataMatch == null)) {
-                                    var attribute = evt.target.attributes[i].name + '="' + evt.target.attributes[i].value + '"';
-                                    attributes.push(attribute);
-                                }
-
-                            } 
-                            //else if(evt.target.attributes[i].name !== 'style'){
-                            //    
-                            //    attributes.push(evt.target.attributes[i].name);
-                            //}
-                        }
-                    }
-
-                    return attributes;
+                    return self.getAttributes(evt.target);
                 })(),
                 classList: (function(){
-                    var classes = [], i;
-
-                    for(i in evt.target.classList){
-                        if(evt.target.classList.hasOwnProperty(i)){
-                            classes.push(evt.target.classList[i]);
-                        }
-                    }
-
-                    return classes;
+                    return self.getClassess(evt.target);
                 })()
             };
 
             // don't click your controls
             if(trackingObject.id != 'traquer-recorder'){
 
-                trackingObject.selector = self.createSelector.call(trackingObject);
+                trackingObject.selector = self.createSelector.call(trackingObject, self);
 
                 // if selector is valid, collect trackingObject
                 if(document.querySelectorAll(trackingObject.selector)){
@@ -200,6 +166,11 @@ Traquer.prototype = {
         if (this.isPlaying)
             return;
 
+        var similarity = this.getSimilarity(eventsInfo);
+
+        if(similarity < 50)
+            console.warn('[w] Current scenario is less than 50% similar to page you`re testing.');
+
         this.isPlaying = true;
 
         this.createFakeCursor();
@@ -221,7 +192,7 @@ Traquer.prototype = {
             fakeCursor.style.left = eventInfo.x + 'px';
 
             if(!selector){
-                console.warn('[f] Cant find element by dinosaurus selector method, probably not there.', eventInfo.selector);
+                console.warn('[f] Cant find element by current selector, probably not there.', eventInfo.selector);
             }
 
             if(!this.previousElement){
@@ -244,6 +215,7 @@ Traquer.prototype = {
             var eventEmitter;
 
             switch(eventInfo.type) {
+                // event execution is defined in https://www.w3.org/TR/DOM-Level-3-Events/
                 case 'mousemove':
                 case 'mouseenter':
                 case 'mouseleave':
@@ -252,23 +224,29 @@ Traquer.prototype = {
                 case 'mouseup':
                 case 'mouseout':
                 case 'click':
+                case 'dblclick':
                 case 'contextmenu':
-               
                     events.mouseEvents(eventInfo, eventElement);
                     break;
                 case 'wheel':
                     events.wheelEvents(eventInfo, eventElement);
                     break;
-                case 'focus':
+                case 'DOMFocusIn':
+                case 'DOMFocusOut':
                 case 'focusin':
+                case 'focus':
                 case 'focusout':
-                
+                case 'blur':
                     events.focusEvents(eventInfo, eventElement);
                     break;
+                case 'beforeinput':
                 case 'input':
                 case 'textinput':
                     events.inputEvents(eventInfo, eventElement);
                     break;
+                case 'keypress':
+                case 'keydown':
+                case 'keyup':
                 case 'nothing':
                     events.keyEvents(eventInfo, eventElement);
                     break;
@@ -281,13 +259,11 @@ Traquer.prototype = {
                     break;
                 case 'scroll':
                 case 'select':
+                case 'DOMMouseScroll':
                 
-                case 'keypress':
-                case 'keydown':
-                case 'keyup':
+                
                 case 'DOMActivate':
-                case 'DOMFocusIn':
-                case 'DOMFocusOut':
+                
 
                 case 'DOMSubtreeModified':
                 case 'DOMCharacterDataModified':
@@ -341,57 +317,158 @@ Traquer.prototype = {
         }
     },
 
-    createSelector: function(){
-        var self = this, selectorString = '';
+    getAttributes: function(element){
+        var attributes = [], i;
 
-        selectorString += self.targetType;
+        for(i in element.attributes){
+            if(element.attributes.hasOwnProperty(i)){
+                
+                if(element.attributes[i].name !== 'style' && element.attributes[i].value ){
 
-        if(self.attrs.length > 0){
+                    // DO NOT match html in tags  (/<.*?[\s\S]*?>[\s\S]*?<\/.*>/g)
+                    // DO NOT match urls          (/(http:).*/g
+                    // DO NOT collect IDs
+                    // DO NOT match data-         (/data-.*/g)
+
+                    var htmlMatch = element.attributes[i].value.match(/<.*?[\s\S]*?>[\s\S]*?<\/.*>/g),
+                        urlMatch  = element.attributes[i].value.match(/(http:).*/g),
+                        dataMatch = element.attributes[i].name.match(/data-.*/g),
+                        idMatch   = element.attributes[i].name == 'id';
+
+                    if(!idMatch && (htmlMatch == null) && (urlMatch == null) && (dataMatch == null)) {
+                        var attribute = element.attributes[i].name + '="' + element.attributes[i].value + '"';
+                        attributes.push(attribute);
+                    }
+                }
+            }
+        }
+        return attributes;
+    },
+
+    getClassess: function(element){
+        var classes = [], i;
+
+        for(i in element.classList){
+            if(element.classList.hasOwnProperty(i)){
+                classes.push(element.classList[i]);
+            }
+        }
+
+        return classes;
+    },
+
+    getSelector: function(attrs, classList, value, id){
+        var selectorString = '';
+        
+        if(attrs.length > 0){
 
             var i;
-            for(i in self.attrs){
-                if(self.attrs.hasOwnProperty(i)){
+            for(i in attrs){
+                if(attrs.hasOwnProperty(i)){
 
-                    if(self.attrs[i] === 'value'){
-                        selectorString += '[' + self.attrs[i] + '="' + self.value + '"]';
+                    if(attrs[i] === 'value'){
+                        selectorString += '[' + attrs[i] + '="' + value + '"]';
                     } 
-                    else if (self.attrs[i] !== undefined)  {
-                        var knownSelectors = self.attrs[i].match(/class/g) ||
-                                             self.attrs[i].match(/selected/g) ||
-                                             self.attrs[i].match(/over/g) ||
-                                             self.attrs[i].match(/dirty/g) ||
-                                             self.attrs[i].match(/selectable/g);
+                    else if (attrs[i] !== undefined)  {
+                        var knownSelectors = attrs[i].match(/class/g) ||
+                                             attrs[i].match(/selected/g) ||
+                                             attrs[i].match(/over/g) ||
+                                             attrs[i].match(/dirty/g) ||
+                                             attrs[i].match(/selectable/g) ||
+                                             attrs[i].match(/href/g) ||
+                                             attrs[i].match(/valign/g) ||
+                                             attrs[i].match(/role/g) ||
+                                             attrs[i].match(/tabindex/g);
 
                         if(!knownSelectors){
-                            selectorString += '[' + self.attrs[i] + ']';
+                            selectorString += '[' + attrs[i] + ']';
                         }
                     }
                 }
             }
         }
 
-        if(self.classList.length > 0){
+        if(classList.length > 0){
 
             var i;
-            for(i in self.classList){
+            for(i in classList){
 
-                if(self.classList.hasOwnProperty(i)){
-                    var knownSelectors = self.classList[i].match(/class/g) || 
-                                         self.classList[i].match(/selected/g) ||
-                                         self.classList[i].match(/over/g) ||
-                                         self.classList[i].match(/dirty/g) ||
-                                         self.classList[i].match(/selectable/g);
+                if(classList.hasOwnProperty(i)){
+                    var knownSelectors = classList[i].match(/selected/g) ||
+                                         classList[i].match(/over/g) ||
+                                         classList[i].match(/dirty/g) ||
+                                         classList[i].match(/selectable/g) ||
+                                         classList[i].match(/focused/g) ||
+                                         classList[i].match(/focus/g);
 
                     if(!knownSelectors){
 
-                        selectorString += '.' + self.classList[i];
+                        selectorString += '.' + classList[i];
                     }
                 }
             }
         }
 
-        if(self.id) {
-            selectorString += '#' + self.id ;
+        if(id) {
+            selectorString += '#' + id ;
+        }
+
+        return selectorString;
+    },
+
+    createSelector: function(traquer){
+        var self = this;
+        var selectorString = self.targetType + traquer.getSelector(self.attrs, self.classList, self.value, self.id);
+        var selectedElements = document.querySelectorAll(selectorString),
+            selectedElement;
+        
+        if(selectedElements.length > 1){
+
+            var i;
+            for(i in selectedElements){
+                if(selectedElements.hasOwnProperty(i) && selectedElements[i].getBoundingClientRect){
+
+                    var intersection, markVisible = false, currentElement = selectedElements[i], oldDisplay = '';
+                    
+                    // Needs to be reconstcructed out of motions (x,y) pair
+                    var currentBoundingBox = currentElement.getBoundingClientRect(),
+                        motionsBoundingBox = { height: 10, left: traquer.mousePosition.x, top: traquer.mousePosition.y, width: 10 };
+
+
+                    if(currentBoundingBox.bottom == 0 && currentBoundingBox.height == 0 && currentBoundingBox.left == 0 &&
+                        currentBoundingBox.right == 0 && currentBoundingBox.top == 0 && currentBoundingBox.width == 0){
+                        // probably display: none or visibility: hidden, todo: check this out
+                        var styles = window.getComputedStyle(currentElement, '');
+                        var j;
+                        for (var j = 0; i < styles.length; i++) {
+                            if(styles[i] == 'display' && styles.getPropertyValue(styles[i]) == 'none'){
+                                oldDisplay = styles[i];
+                                currentElement.setAttribute('style', 'display: block;');
+                                markVisible = true;
+                            }
+                        }
+                    }
+
+                    intersection = traquer.getIntersection(currentElement, motionsBoundingBox, markVisible);
+                    
+                    if(intersection){
+                        selectedElement = currentElement.parentElement.parentElement ? currentElement.parentElement.parentElement : currentElement.parentElement;
+                    }
+
+                    if(markVisible){
+                        currentElement.setAttribute('style', 'display: ' + oldDisplay + ';');
+                    }
+                }
+            }
+        }
+
+        if(selectedElement){
+            var attributes = traquer.getAttributes(selectedElement),
+                classes    = traquer.getClassess(selectedElement);
+
+            if(attributes.length && classes.length){
+                selectorString = traquer.getSelector(attributes, classes, selectedElement.value, selectedElement.id) + ' > ' + selectorString ;
+            }
         }
 
         return selectorString;
@@ -443,5 +520,28 @@ Traquer.prototype = {
             }
 
         return found;
+    },
+
+    getSimilarity: function(eventsInfo){
+        var elements = 0, percentage = 0, i;
+
+        for(i in eventsInfo){
+            if(eventsInfo.hasOwnProperty(i)){
+                var eventInfo = eventsInfo[i],
+                    similar = document.querySelector(eventInfo.selector);
+                
+                if(similar){
+                    var style  = window.getComputedStyle(similar),
+                        hidden = /*style.display == 'none' || */style.visibility == 'hidden';
+
+                    if(!hidden)
+                        elements++;
+                }
+            }
+        }
+
+        percentage = (elements / eventsInfo.length) * 100;
+            
+        return percentage;
     }
 }

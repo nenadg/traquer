@@ -10,13 +10,15 @@
       * { font-family: monospace; font-size: 12px; }
       body { border: 0; margin: 0; padding: 0px; }
     </style>
-    <link rel="stylesheet" type="text/css" href="/lib/player.css"/>
-    <link rel="stylesheet" type="text/css" href="/lib/recorder.css"/>
-    <link rel="stylesheet" type="text/css" href="/lib/timeline.css"/>
+    
+    <link href="/lib/base.css" rel="stylesheet" type="text/css" />
+    <link href="/lib/timeline.css" rel="stylesheet" type="text/css" />
+    <link href="/lib/recorder.css" rel="stylesheet" type="text/css" />
+    <link href="/lib/player.css" rel="stylesheet" type="text/css" />
 
-    <script type="text/javascript" src="/lib/controls.js"></script> 
     <script type="text/javascript" src="/lib/events.js"></script>
     <script type="text/javascript" src="/lib/traquer.js"></script>
+    <script type="text/javascript" src="/lib/controls.js"></script> 
   </head>
   <body>
     <div id="top" class="page" role="document">
@@ -62,6 +64,7 @@
               <li><a href="#forms__textareas">Textareas</a></li>
               <li><a href="#forms__html5">HTML5 inputs</a></li>
               <li><a href="#forms__action">Action buttons</a></li>
+              <li><a href="#forms__contentEditable">contentEditable</a></li>
             </ul>
           </li>
         </ul>
@@ -418,6 +421,13 @@
                 <button type="reset">&lt;button type=reset&gt;</button>
                 <button type="button" disabled>&lt;button disabled&gt;</button>
               </p>
+            </fieldset>
+            <fieldset id="forms__contentEditable">
+              <legend>Content Editable</legend>
+              <p>
+                <div id="div__contentEditable" contentEditable="true" style="width: 200px; height: 300px; background-color: #efefef"></div>
+              </p>
+              
             </fieldset>
             <p><a href="#top">[Top]</a></p>
           </form>

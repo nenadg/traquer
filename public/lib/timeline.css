@@ -1,12 +1,13 @@
 ol.timeline-container {
     position: fixed;
-    z-index: 2147483640;
-    bottom: 118px;
+    z-index: 2147483639;
+    bottom: 110px;
     left: 143px;
     height: 2px;
     background: rgba(153, 187, 34, 0.3);
     font-weight: normal;
     width: 70vw;
+    box-shadow: 0px 0px 12px #dfdfdf;
 }
 ol.timeline-container::before,
 ol.timeline-container::after {
@@ -39,6 +40,7 @@ ol.timeline-container li {
     transform: rotate(-45deg);
     color: #000;
     font-weight: normal;
+
 }
 ol.timeline-container li:before {
     content: "";
@@ -52,6 +54,7 @@ ol.timeline-container li:before {
     border-radius: 10px;
     background: #eee;
     z-index: 2146000000;
+    box-shadow: 0px 0px 12px #dfdfdf;
 }
 
 ol.timeline-container li.default {
@@ -92,7 +95,7 @@ ol.timeline-container li div.tl-type {
     font-weight: normal;
 }
 
-ol.timeline-container div.tl-selector {
+ol.timeline-container li div.tl-selector {
     top: 15px;
     font-family: monospace;
     font-size: 10px;
@@ -116,14 +119,20 @@ ol.timeline-container li:hover div {
     background: rgba(255,255,255, 0.8);
 }
 
+ol.timeline-container li:hover {
+    z-index: 9;
+}
+
 /* Track */
 .timeline-track {
     position: fixed;
     height: 141px;
     width: 0px;
     border: 1px solid rgba(153, 187, 34, 0.3);
-    bottom: 25px;
+    bottom: 15px;
     left: 144px;
+    box-shadow: 0px 0px 12px #dfdfdf;
+    z-index: 2147483639;
 }
 
 .timeline-track:before {
@@ -144,7 +153,7 @@ ol.timeline-container li:hover div {
     display: inline-block;
     float: left;
     width: 150px;
-    transform: rotate(-45deg);
+    transform: rotateZ(-45deg);
     color: #888;
     font-weight: normal;
 }

@@ -4,8 +4,10 @@ var fs         = require('fs'),
     src        = 'public/lib',
     out        = 'public/lib/traquer.joined.js',
     opt        = 'public/traquer.min.js',
+    outcss     = 'public/traquer.min.css',
     walker     = walk.walk(src, { followLinks: false }),
-    files      = [];
+    files      = [],
+    styles     = [];
 
 walker.on('file', function(root, stat, next) {
     var parts = stat.name.split('.'),
@@ -13,6 +15,9 @@ walker.on('file', function(root, stat, next) {
 
     if(ext === 'js')
         files.push(root + '/' + stat.name);
+
+    if(ext == 'css')
+        styles.push(root + '/' + stat.name);
 
     next();
 });
@@ -49,6 +54,18 @@ walker.on('end', function() {
                     }
                 });
             });
+        }
+    });
+
+    new compressor.minify({
+        type: 'yui-css',
+        fileIn: styles,
+        fileOut: outcss,
+        callback: function(err, min){
+            if(err)
+                console.log(err);
+            
+            console.log('[2] yui css compressed ' + styles.length + ' files to ' + outcss);
         }
     });
 });

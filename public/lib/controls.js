@@ -1,8 +1,10 @@
 window.addEventListener('load', function() {
     var recorder       = document.createElement('div');
-    recorder.className = 'recorder';
+    recorder.className = 'traquer-recorder';
     recorder.id        = 'traquer-recorder';
     controls           = new Controls();
+
+    controls.loadStyles();
 
     recorder.addEventListener('click', controls.recording.bind(this, controls));
 
@@ -16,6 +18,34 @@ var Controls = function(){
     }
 
     this.traquer = new Traquer();
+    this.styles  = ['base.css',
+                    'timeline.css',
+                    'recorder.css',
+                    'player.css'];
+}
+
+Controls.prototype.loadStyles = function(){
+    var self   = this,
+        head   = document.head,
+        styles = head.querySelectorAll('link'),
+        loaded = false, i;
+
+    for(i in styles){
+        if(styles.hasOwnProperty(i)){
+            var style = styles[i];
+
+            if(self.styles.indexOf(style.href) > -1)
+                loaded = true;
+        }
+    }
+    
+    if(!loaded){
+        var stylesheet = document.createElement('link');
+        stylesheet.rel = 'stylesheet';
+        stylesheet.type = 'text/css';
+        stylesheet.href  = 'http://localhost:3008/traquer.min.css';
+        document.head.appendChild(stylesheet);
+    }
 }
 
 Controls.prototype.recording = function(controls, e){
@@ -26,7 +56,7 @@ Controls.prototype.recording = function(controls, e){
     
     if(!traquer.isRecording){
         traquer.start();
-        recorder.className = 'recorder squared';
+        recorder.className = 'traquer-recorder squared';
         return;
     }
 
@@ -35,7 +65,7 @@ Controls.prototype.recording = function(controls, e){
         document.body.removeChild(player);
     }
     
-    recorder.className = 'recorder';
+    recorder.className = 'traquer-recorder';
     traquer.stop();
 
     self.timeline.call(self);
@@ -62,7 +92,12 @@ Controls.prototype.timeline = function(){
 
     self.tlcWidth = tlcWidth;
 
-    var i, lastTimeLine, baseZindex = 2147000000;
+    var baseZindex          = 2147000000, 
+        timeLineNodes       = [],
+        timelineConstructor = '',
+        lastTimeLine,
+        i;
+
     for (i in events){
         if(events.hasOwnProperty(i)){
             var event             = events[i],
@@ -73,7 +108,7 @@ Controls.prototype.timeline = function(){
                                         ' style="left: ' + percentInTimeLine + 'px;"',
                                         ' class="{css-class}">',
                                         '<div class="tl-type" style="z-index: ' + (baseZindex++) + '">',
-                                            '{title}',
+                                            '{title} {key} ',
                                         '</div>',
                                         '<div class="tl-selector" style="z-index: ' + (baseZindex++) + '">',
                                             '{selector}',
@@ -87,17 +122,42 @@ Controls.prototype.timeline = function(){
             
             eventConstructor = eventConstructor.replace(/{title}/igm, event.type)
                                                .replace(/{selector}/igm, event.selector)
+                                               .replace(/{key}/igm, event.raw.key || '')
                                                .replace(/{css-class}/igm, colorClass);
-            timelineContainer.innerHTML += eventConstructor;
 
+            var timeLineNode = {
+                id           : eventId,
+                time         : event.time,
+                type         : event.type,
+                lastTimeLine : percentInTimeLine
+            };
+
+            timeLineNodes.push(timeLineNode);
+
+            timelineConstructor += eventConstructor;
+
+        }
+    }
+
+    timelineContainer.innerHTML = timelineConstructor;
+
+    for(i in timeLineNodes){
+        if(timeLineNodes.hasOwnProperty(i)){
+            var timeLineNode      = timeLineNodes[i],
+                type              = timeLineNode.type,
+                id                = timeLineNode.id,
+                time              = timeLineNode.time,
+                percentInTime     = parseInt(time / last * 100),
+                percentInTimeLine = parseInt(percentInTime * tlcWidth / 100);
+           
             if(lastTimeLine && 
-                (event.type != 'click' && event.type != 'keydown'  &&
-                event.type != 'keyup'  && event.type != 'keypress' &&
-                event.type.indexOf('DOM') == -1 &&
-                event.type.indexOf('select') == -1) &&
+                /*(type != 'click' && type != 'keydown'  &&
+                type != 'keyup'  && type != 'keypress' &&
+                type.indexOf('DOM') == -1 &&
+                type.indexOf('select') == -1) &&*/
                 (percentInTimeLine > lastTimeLine - 10 && percentInTimeLine < lastTimeLine + 10)){
                 
-                var currentEvent  = timelineContainer.querySelector('#' + eventId),
+                var currentEvent  = timelineContainer.querySelector('#' + id),
                     prevEvent     = currentEvent.previousSibling,
                     currentStyle  = window.getComputedStyle(currentEvent),
                     prevStyle     = window.getComputedStyle(prevEvent),
@@ -105,24 +165,48 @@ Controls.prototype.timeline = function(){
                     prevTop       = Math.abs(Math.round(parseFloat(prevStyle.top.replace('px', '')) * 100 / 100)),
                     topStyle      = 0 ;
 
-                if(prevTop == currentTop)
-                    topStyle = currentTop + 28;
+                if((type == 'click' || type == 'keydown'  ||
+                    type == 'keyup'  || type =='keypress' ||
+                    type.indexOf('DOM') > -1 ||
+                    type.indexOf('select') > -1)){
 
-                if(prevTop > currentTop)
-                    topStyle = prevTop - currentTop + 38;
+                        if(prevTop == currentTop)
+                            topStyle = currentTop + 8;
 
-                if(prevTop < currentTop)
-                    topStyle = currentTop - prevTop + 38;
+                        if(prevTop > currentTop)
+                            topStyle = prevTop - currentTop + 4;
 
-                topStyle -= 80;
-                topStyle += 'px';
+                        if(prevTop < currentTop)
+                            topStyle = currentTop - prevTop  + 4;
 
-                currentEvent.style.cssText += 'top: ' + topStyle + ';'; 
+                        topStyle = -topStyle;
+                        topStyle += 'px';
+                       
+                       
+                }
+                else{
+
+                    if(prevTop == currentTop)
+                        topStyle = currentTop + 18;
+
+                    if(prevTop > currentTop)
+                        topStyle = prevTop - currentTop + 38;
+
+                    if(prevTop < currentTop)
+                        topStyle = currentTop - prevTop + 38;
+
+                    topStyle -= 70;
+                    topStyle += 'px';
+                }
+
+                currentEvent.style.cssText += 'top: ' + topStyle + ';';
             }
 
-            lastTimeLine     = percentInTimeLine;
+            lastTimeLine      = timeLineNode.lastTimeLine;
         }
     }
+
+    
 }
 
 Controls.prototype.player = function(){
@@ -185,10 +269,10 @@ Controls.prototype.player = function(){
 
             e.target.style.cssText = 'left: ' + percentInTimeLine + 'px;';
             //percentInTimeLine > lastTimeLine - 10 && percentInTimeLine < lastTimeLine + 10
-            if(self.previousTime > time - 10 && self.previousTime < time + 10)
-                currentEvent.innerHTML += eventInfo.type + ' <br />';
+            if(self.previousTime > time - 2 && self.previousTime < time + 2)
+                currentEvent.innerHTML += eventInfo.type + '(' + time + ') <br />';
             else
-                currentEvent.innerHTML = eventInfo.type + ' <br />';
+                currentEvent.innerHTML = eventInfo.type + '(' + time + ') <br />';
 
             self.previousTime = time;
         });
