@@ -169,7 +169,7 @@ Traquer.prototype = {
         var similarity = this.getSimilarity(eventsInfo);
 
         if(similarity < 50)
-            console.warn('[w] Current scenario is less than 50% similar to page you`re testing.');
+            console.warn('[w] Current scenario is less than 50% similar to page you`re testing (' + similarity + ')');
 
         this.isPlaying = true;
 
@@ -215,7 +215,6 @@ Traquer.prototype = {
             var eventEmitter;
 
             switch(eventInfo.type) {
-                // event execution is defined in https://www.w3.org/TR/DOM-Level-3-Events/
                 case 'mousemove':
                 case 'mouseenter':
                 case 'mouseleave':
@@ -260,22 +259,17 @@ Traquer.prototype = {
                 case 'scroll':
                 case 'select':
                 case 'DOMMouseScroll':
-                
-                
                 case 'DOMActivate':
-                
-
                 case 'DOMSubtreeModified':
                 case 'DOMCharacterDataModified':
                     events.UIEvents(eventInfo, eventElement);
                     break;
             }
 
-            //if(self.trackTarget){
-                
+            if(self.trackTarget){
                 var moveEvent = new CustomEvent('move', { detail: { eventInfo: eventInfo, last: self.recordedEvents[self.recordedEvents.length - 1].time } });
                 self.trackTarget.dispatchEvent(moveEvent);
-            //}
+            }
         }
 
         if(self.recordedEvents.indexOf(eventInfo) == self.recordedEvents.length -1){
@@ -417,57 +411,40 @@ Traquer.prototype = {
     },
 
     createSelector: function(traquer){
-        var self = this;
-        var selectorString = self.targetType + traquer.getSelector(self.attrs, self.classList, self.value, self.id);
-        var selectedElements = document.querySelectorAll(selectorString),
+        var self             = this,
+            selectorString   = self.targetType + traquer.getSelector(self.attrs, self.classList, self.value, self.id),
+            firstFound       = document.querySelector(selectorString),
+            selectedElements = document.querySelectorAll(selectorString),
             selectedElement;
         
         if(selectedElements.length > 1){
 
             var i;
             for(i in selectedElements){
-                if(selectedElements.hasOwnProperty(i) && selectedElements[i].getBoundingClientRect){
+                if(selectedElements.hasOwnProperty(i)){
 
-                    var intersection, markVisible = false, currentElement = selectedElements[i], oldDisplay = '';
+                    var currentElement = selectedElements[i],
+                        intersection;
                     
                     // Needs to be reconstcructed out of motions (x,y) pair
                     var currentBoundingBox = currentElement.getBoundingClientRect(),
                         motionsBoundingBox = { height: 10, left: traquer.mousePosition.x, top: traquer.mousePosition.y, width: 10 };
 
-
-                    if(currentBoundingBox.bottom == 0 && currentBoundingBox.height == 0 && currentBoundingBox.left == 0 &&
-                        currentBoundingBox.right == 0 && currentBoundingBox.top == 0 && currentBoundingBox.width == 0){
-                        // probably display: none or visibility: hidden, todo: check this out
-                        var styles = window.getComputedStyle(currentElement, '');
-                        var j;
-                        for (var j = 0; i < styles.length; i++) {
-                            if(styles[i] == 'display' && styles.getPropertyValue(styles[i]) == 'none'){
-                                oldDisplay = styles[i];
-                                currentElement.setAttribute('style', 'display: block;');
-                                markVisible = true;
-                            }
-                        }
-                    }
-
-                    intersection = traquer.getIntersection(currentElement, motionsBoundingBox, markVisible);
+                    intersection = traquer.getIntersection(currentElement, motionsBoundingBox);
                     
                     if(intersection){
-                        selectedElement = currentElement.parentElement.parentElement ? currentElement.parentElement.parentElement : currentElement.parentElement;
-                    }
-
-                    if(markVisible){
-                        currentElement.setAttribute('style', 'display: ' + oldDisplay + ';');
+                        selectedElement = currentElement == firstFound ? currentElement.parentElement : currentElement;
                     }
                 }
             }
         }
 
-        if(selectedElement){
+        if(selectedElement && selectedElement != firstFound){
             var attributes = traquer.getAttributes(selectedElement),
                 classes    = traquer.getClassess(selectedElement);
 
             if(attributes.length && classes.length){
-                selectorString = traquer.getSelector(attributes, classes, selectedElement.value, selectedElement.id) + ' > ' + selectorString ;
+                selectorString = traquer.getSelector(attributes, classes, selectedElement.value, selectedElement.id) + ' > ' + selectorString ; 
             }
         }
 
