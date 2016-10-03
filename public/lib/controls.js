@@ -2,6 +2,7 @@ window.addEventListener('load', function() {
     var recorder       = document.createElement('div');
     recorder.className = 'traquer-recorder';
     recorder.id        = 'traquer-recorder';
+    recorder.title     = 'Record';
     controls           = new Controls();
 
     controls.loadStyles();
@@ -11,6 +12,7 @@ window.addEventListener('load', function() {
     document.body.appendChild(recorder);
 });
 
+"use strict";
 
 var Controls = function(){
     if (!(this instanceof Controls)) {
@@ -21,7 +23,8 @@ var Controls = function(){
     this.styles  = ['base.css',
                     'timeline.css',
                     'recorder.css',
-                    'player.css'];
+                    'player.css',
+                    'reset.css'];
 }
 
 Controls.prototype.loadStyles = function(){
@@ -65,8 +68,18 @@ Controls.prototype.recording = function(controls, e){
         document.body.removeChild(player);
     }
     
+    var lzw = new Lzw();
+
     recorder.className = 'traquer-recorder';
     traquer.stop();
+
+    var enc = lzw.encode(traquer.recordedEvents);
+    var dec = lzw.decode(enc);
+
+    self.recordedEvents = dec;
+
+    console.log(lzw.getHumanReadableLength(enc));
+    
 
     self.timeline.call(self);
     self.player.call(self);
@@ -103,7 +116,7 @@ Controls.prototype.timeline = function(){
             var event             = events[i],
                 percentInTime     = parseInt(event.time / last * 100),
                 percentInTimeLine = parseInt(percentInTime * tlcWidth / 100),
-                eventId           = 'e_' + Math.random().toString(36).substring(3).substr(0, 8),
+                eventId           = event.tid,
                 eventConstructor  = ['<li id="' + eventId + '"',
                                         ' style="left: ' + percentInTimeLine + 'px;"',
                                         ' class="{css-class}">',
@@ -148,7 +161,8 @@ Controls.prototype.timeline = function(){
                 id                = timeLineNode.id,
                 time              = timeLineNode.time,
                 percentInTime     = parseInt(time / last * 100),
-                percentInTimeLine = parseInt(percentInTime * tlcWidth / 100);
+                percentInTimeLine = parseInt(percentInTime * tlcWidth / 100),
+                currentEvent      = timelineContainer.querySelector('#' + id);
            
             if(lastTimeLine && 
                 /*(type != 'click' && type != 'keydown'  &&
@@ -157,8 +171,8 @@ Controls.prototype.timeline = function(){
                 type.indexOf('select') == -1) &&*/
                 (percentInTimeLine > lastTimeLine - 10 && percentInTimeLine < lastTimeLine + 10)){
                 
-                var currentEvent  = timelineContainer.querySelector('#' + id),
-                    prevEvent     = currentEvent.previousSibling,
+                
+                var  prevEvent     = currentEvent.previousSibling,
                     currentStyle  = window.getComputedStyle(currentEvent),
                     prevStyle     = window.getComputedStyle(prevEvent),
                     currentTop    = Math.abs(Math.round(parseFloat(currentStyle.top.replace('px', '')) * 100 / 100)),
@@ -180,9 +194,7 @@ Controls.prototype.timeline = function(){
                             topStyle = currentTop - prevTop  + 4;
 
                         topStyle = -topStyle;
-                        topStyle += 'px';
-                       
-                       
+                        topStyle += 'px';     
                 }
                 else{
 
@@ -199,8 +211,15 @@ Controls.prototype.timeline = function(){
                     topStyle += 'px';
                 }
 
-                currentEvent.style.cssText += 'top: ' + topStyle + ';';
+                currentEvent.style.cssText += 'top: ' + topStyle + ';'; 
             }
+
+            currentEvent.addEventListener('click', function(id, type, time, e){
+                var recordedEvent = this.recordedEvents.filter(function(re){
+                    return re.tid == id;
+                })[0];
+                console.log(recordedEvent);
+            }.bind(traquer, id, type, time));
 
             lastTimeLine      = timeLineNode.lastTimeLine;
         }
@@ -220,6 +239,7 @@ Controls.prototype.player = function(){
     if(!player){
         player           = document.createElement('div');
         player.className = 'player';
+        player.title     = 'Replay';
         document.body.appendChild(player);
 
         player.innerHTML = '<div class="play"></div>';
@@ -244,6 +264,8 @@ Controls.prototype.player = function(){
 
         }.bind(traquer, events));
     }
+
+    this.reset();
 
     if(!timelineTrack){
         timelineTrack           = document.createElement('div');
@@ -276,5 +298,36 @@ Controls.prototype.player = function(){
 
             self.previousTime = time;
         });
+    }
+}
+
+Controls.prototype.reset = function(){
+    var self              = this,
+        traquer           = self.traquer,
+        events            = traquer.recordedEvents,
+        reset             = document.querySelector('.reset');
+
+    if(!reset){
+        reset           = document.createElement('div');
+        reset.className = 'reset';
+        reset.title     = 'Reset';
+        document.body.appendChild(reset);
+
+        reset.innerHTML = '<div class="play"></div>';
+
+        reset.addEventListener('click', function(events, e){
+            var self = this,
+                timelineContainer = document.querySelector('ol.timeline-container'),
+                timelineTrack     = document.querySelector('.timeline-track'),
+                currentEvent      = document.querySelector('.current-event'),
+                player            = document.querySelector('.player');
+
+            self.recordedEvents = [];
+            document.body.removeChild(player);
+            document.body.removeChild(reset); 
+            document.body.removeChild(timelineContainer);
+            document.body.removeChild(timelineTrack);
+            
+        }.bind(traquer, events));
     }
 }

@@ -1,0 +1,38 @@
+.reset {
+  position: fixed;
+  bottom: 50px;
+  left: 20px;
+  font-size: 28px;
+  height: 30px;
+  width: 30px;
+  color: rgba(153, 187, 34, 0.8);
+  cursor: pointer;
+  border-left: 2px solid rgba(153, 187, 34, 0.8);
+  border-right: 2px solid rgba(161, 161, 161, 0.48);
+  border-bottom: 2px solid rgba(161, 161, 161, 0.48);
+  border-top: 2px solid rgba(161, 161, 161, 0.48);
+  border-radius: 100%;
+  box-shadow: 0px 0px 12px #dfdfdf;
+  z-index: 2147483639;
+  box-sizing: content-box !important;
+  -moz-box-sizing: content-box !important;
+  -ms-box-sizing: content-box !important;
+  -webkit-box-sizing: content-box !important;
+}
+
+.reset:after {
+  position: absolute;
+  content: 'x';
+  font-size: 12px;
+  font-weight: bold;
+  padding: 8px 8px 10px 11px;
+}
+
+
+.reset:hover {
+  border-left: 2px solid rgba(153, 33, 34, 0.7);
+}
+
+.reset:hover:after {
+  color: rgba(153, 33, 34, 0.7);
+}

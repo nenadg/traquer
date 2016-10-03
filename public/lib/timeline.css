@@ -4,10 +4,10 @@ ol.timeline-container {
     bottom: 110px;
     left: 143px;
     height: 2px;
-    background: rgba(153, 187, 34, 0.3);
+   /* background: rgba(153, 187, 34, 0.0);*/
     font-weight: normal;
     width: 70vw;
-    box-shadow: 0px 0px 12px #dfdfdf;
+    /*box-shadow: 0px 0px 12px #dfdfdf;*/
 }
 ol.timeline-container::before,
 ol.timeline-container::after {
@@ -25,9 +25,9 @@ ol.timeline-container::before {
     border: none;
 }
 ol.timeline-container::after {
-    right: -10px;
-    border: 10px solid transparent;
-    border-left: 20px solid #9b2;
+    right: -15px;
+    border: 5px solid transparent;
+    border-left: 1px solid #c1c1c1;
 }
 
 /* ---- Timeline elements ---- */
@@ -130,7 +130,7 @@ ol.timeline-container li:hover {
     width: 0px;
     border: 1px solid rgba(153, 187, 34, 0.3);
     bottom: 15px;
-    left: 144px;
+    left: 154px;
     box-shadow: 0px 0px 12px #dfdfdf;
     z-index: 2147483639;
 }

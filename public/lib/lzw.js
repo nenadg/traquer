@@ -1,0 +1,99 @@
+"use strict";
+
+var Lzw = function(){
+    if (!(this instanceof Lzw)) {
+        return new Lzw();
+    }
+}
+
+
+Lzw.prototype.getHumanReadableLength = function(s) {
+	var byteLength = this.getByteLength(s);
+
+	var oneKB = 1024,
+		 oneMB = oneKB * oneKB,
+	 	 oneGB = oneMB * oneKB;
+
+	if (byteLength > oneGB)
+		return Math.round(byteLength * 100 / oneGB) / 100 + ' GB';
+
+	if (byteLength > oneMB)
+		return Math.round(byteLength * 100 / oneMB) / 100 + ' MB';
+
+	return Math.round(byteLength * 100 / oneKB) / 100 + ' KB';
+}
+
+Lzw.prototype.getByteLength = function (s) {
+	var len = 0;
+	for (var i = 0; i < s.length; i++) {
+		var code = s.charCodeAt(i);
+		if (code <= 0x7f)
+			len += 1;
+		else if (code <= 0x7ff)
+			len += 2;
+		else if (code >= 0xd800 && code <= 0xdfff) {
+			// Surrogate pair: These take 4 bytes in UTF-8 and 2 chars in UCS-2
+			// (Assume next char is the other [valid] half and just skip it)
+			len += 4; i++;
+		}
+		else if (code < 0xffff)
+			len += 3;
+		else
+			len += 4;
+	}
+
+	return len;
+}
+
+Lzw.prototype.encode = function (s) {
+	s = JSON.stringify(s);
+	var dict = {};
+	var data = (s + '').split('');
+	var out = [];
+	var currChar;
+	var phrase = data[0];
+	var code = 256;
+	for (var i = 1; i < data.length; i++) {
+		currChar=data[i];
+		if (dict[phrase + currChar] != null)
+			phrase += currChar;
+		else {
+			out.push(phrase.length > 1 ? dict[phrase] : phrase.charCodeAt(0));
+			dict[phrase + currChar] = code;
+			code++;
+			phrase=currChar;
+		}
+	}
+	out.push(phrase.length > 1 ? dict[phrase] : phrase.charCodeAt(0));
+	for (i = 0; i < out.length; i++)
+		out[i] = String.fromCharCode(out[i]);
+
+	return out.join('');
+}
+
+Lzw.prototype.decode = function (s) {
+	var dict = {};
+	var data = (s + '').split('');
+	var currChar = data[0];
+	var oldPhrase = currChar;
+	var out = [currChar];
+	var code = 256;
+	var phrase;
+	for (var i = 1; i < data.length; i++) {
+		var currCode = data[i].charCodeAt(0);
+		if (currCode < 256)
+			phrase = data[i];
+		else
+			phrase = dict[currCode] ? dict[currCode] : (oldPhrase + currChar);
+
+		out.push(phrase);
+		currChar = phrase.charAt(0);
+		dict[code] = oldPhrase + currChar;
+		code++;
+		oldPhrase = phrase;
+	}
+	out = out.join('');
+
+	out = JSON.parse(out);
+	return out;
+}

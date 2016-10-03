@@ -24,10 +24,40 @@ var Traquer = function() {
     var traquerBase = document.createElement('div');
     traquerBase.className   = 'traquer-base';
     document.body.appendChild(traquerBase);
+
+    window.onerror = function(message, url, lineNumber) {  
+        //save error and send to server for example.
+        var errorEvent = new Event('terror');
+        errorEvent.details = [message, url, lineNumber]
+        //return true;
+        traquerBase.dispatchEvent(errorEvent);
+    }
+
+    traquerBase.addEventListener('terror', function(e){
+        console.log('[e] some error');
+        console.log(e);
+    });
 }
 
 Traquer.prototype = {
     
+    getId: function(){
+        var recordedEvents = this.recordedEvents;
+
+        if(recordedEvents && recordedEvents.length){
+            var randomId = 'e_' + Math.random().toString(36).substring(3).substr(0, 8),
+                same     = recordedEvents.filter(function(recordedEvent){
+                    if(recordedEvent.tid == randomId)
+                        return same;
+                });
+            
+            if(same.length)
+                this.getId();
+            else
+                return randomId;
+        }
+    },
+
     isEventObservable: function(evt) {
         if (evt && evt.type)
             return this.eventNames.indexOf(evt.type) > -1;
@@ -98,6 +128,7 @@ Traquer.prototype = {
         if (self.isEventObservable(evt) || self.isMouseDown) {
 
             var trackingObject = {
+                tid        : self.getId(),
                 index      : this.index,
                 x          : self.mousePosition.x,
                 y          : self.mousePosition.y,
@@ -125,7 +156,7 @@ Traquer.prototype = {
 
                     delete trackingObject.classList;
                     delete trackingObject.attrs;
-                    delete trackingObject.targetType;
+                    //delete trackingObject.targetType;
 
                     self.recordedEvents.push(trackingObject);
                     this.index++;
