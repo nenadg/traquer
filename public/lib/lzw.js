@@ -1,13 +1,13 @@
 "use strict";
 
-var Lzw = function(){
-    if (!(this instanceof Lzw)) {
-        return new Lzw();
+Traquer.Lzw = function(){
+    if (!(this instanceof Traquer.Lzw)) {
+        return new Traquer.Lzw();
     }
 }
 
 
-Lzw.prototype.getHumanReadableLength = function(s) {
+Traquer.Lzw.prototype.getHumanReadableLength = function(s) {
 	var byteLength = this.getByteLength(s);
 
 	var oneKB = 1024,
@@ -23,7 +23,7 @@ Lzw.prototype.getHumanReadableLength = function(s) {
 	return Math.round(byteLength * 100 / oneKB) / 100 + ' KB';
 }
 
-Lzw.prototype.getByteLength = function (s) {
+Traquer.Lzw.prototype.getByteLength = function (s) {
 	var len = 0;
 	for (var i = 0; i < s.length; i++) {
 		var code = s.charCodeAt(i);
@@ -45,7 +45,7 @@ Lzw.prototype.getByteLength = function (s) {
 	return len;
 }
 
-Lzw.prototype.encode = function (s) {
+Traquer.Lzw.prototype.encode = function (s) {
 	s = JSON.stringify(s);
 	var dict = {};
 	var data = (s + '').split('');
@@ -71,7 +71,7 @@ Lzw.prototype.encode = function (s) {
 	return out.join('');
 }
 
-Lzw.prototype.decode = function (s) {
+Traquer.Lzw.prototype.decode = function (s) {
 	var dict = {};
 	var data = (s + '').split('');
 	var currChar = data[0];

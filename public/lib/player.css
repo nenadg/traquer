@@ -1,4 +1,4 @@
-.player {
+.traquer-player {
   position: fixed;
   bottom: 50px;
   left: 60px;
@@ -20,12 +20,12 @@
   -webkit-box-sizing: content-box !important;
 }
 
-.player:after {
+.traquer-player:after {
   position: absolute;
   content: '';
 }
 
-.player .play {
+.traquer-player .play {
     width: 0px;
     height: 0px;
     border-top: 10px solid transparent;
@@ -37,17 +37,17 @@
     z-index: 2147483640;
 }
 
-.player .play:hover {
+.traquer-player .play:hover {
     border-left: 10px solid rgba(153, 187, 34, 0.8);
 }
 
-.player.playing {
+.traquer-player.playing {
   border-left: 2px solid rgba(111, 111, 111, 0.7);
   border-right: 2px solid rgba(111, 111, 111, 0.7);  
   border-bottom: 2px solid rgba(111, 111, 111, 0.7);
   border-top: 2px solid rgba(111, 111, 111, 0.3);
 }
 
-.player.playing .play {
+.traquer-player.playing .play {
     border-left: 10px solid rgba(111, 111, 111, 0.8);
 }

@@ -217,7 +217,7 @@ Traquer.prototype = {
             var selector     = document.querySelector(eventInfo.selector),
                 eventElement = selector ? selector : document.elementFromPoint(eventInfo.x, eventInfo.y), // fallback
                 fakeCursor   = self.getFakeCursor(),
-                events       = new EventBase(self);
+                events       = new Traquer.EventBase(self);
 
             fakeCursor.style.top  = eventInfo.y + 'px';
             fakeCursor.style.left = eventInfo.x + 'px';

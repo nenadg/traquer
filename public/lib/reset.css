@@ -1,4 +1,4 @@
-.reset {
+.traquer-reset {
   position: fixed;
   bottom: 50px;
   left: 20px;
@@ -20,7 +20,7 @@
   -webkit-box-sizing: content-box !important;
 }
 
-.reset:after {
+.traquer-reset:after {
   position: absolute;
   content: 'x';
   font-size: 12px;
@@ -29,10 +29,10 @@
 }
 
 
-.reset:hover {
+.traquer-reset:hover {
   border-left: 2px solid rgba(153, 33, 34, 0.7);
 }
 
-.reset:hover:after {
+.traquer-reset:hover:after {
   color: rgba(153, 33, 34, 0.7);
 }

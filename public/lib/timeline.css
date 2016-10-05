@@ -1,4 +1,4 @@
-ol.timeline-container {
+ol.traquer-timeline-container {
     position: fixed;
     z-index: 2147483639;
     bottom: 110px;
@@ -9,8 +9,8 @@ ol.timeline-container {
     width: 70vw;
     /*box-shadow: 0px 0px 12px #dfdfdf;*/
 }
-ol.timeline-container::before,
-ol.timeline-container::after {
+ol.traquer-timeline-container::before,
+ol.traquer-timeline-container::after {
     content: "";
     position: absolute;
     top: -9px;
@@ -20,18 +20,18 @@ ol.timeline-container::after {
     border-radius: 100%;
     border: 9px solid #9b2;
 }
-ol.timeline-container::before {
+ol.traquer-timeline-container::before {
     left: -5px;
     border: none;
 }
-ol.timeline-container::after {
+ol.traquer-timeline-container::after {
     right: -15px;
     border: 5px solid transparent;
     border-left: 1px solid #c1c1c1;
 }
 
 /* ---- Timeline elements ---- */
-ol.timeline-container li {
+ol.traquer-timeline-container li {
     position: absolute;
     top: -77px;
     display: inline-block;
@@ -42,7 +42,7 @@ ol.timeline-container li {
     font-weight: normal;
 
 }
-ol.timeline-container li:before {
+ol.traquer-timeline-container li:before {
     content: "";
     position: absolute;
     top: 3px;
@@ -57,45 +57,45 @@ ol.timeline-container li:before {
     box-shadow: 0px 0px 12px #dfdfdf;
 }
 
-ol.timeline-container li.default {
+ol.traquer-timeline-container li.default {
     top: -37px;
 }
 
-ol.timeline-container li.default:before {
+ol.traquer-timeline-container li.default:before {
     border: 1px solid #a1a1a1;
 }
 
-ol.timeline-container li.blue {
+ol.traquer-timeline-container li.blue {
     top: -97px;
 }
 
-ol.timeline-container li.blue:before {
+ol.traquer-timeline-container li.blue:before {
     border: 1px solid #28e;
 }
 
-ol.timeline-container li.green {
+ol.traquer-timeline-container li.green {
     top: -57px;
 }
 
-ol.timeline-container li.green:before {
+ol.traquer-timeline-container li.green:before {
     border: 1px solid rgba(5, 216, 99, 1);
 }
 
-ol.timeline-container li.red:before {
+ol.traquer-timeline-container li.red:before {
     border: 1px solid #c72525;
 }
 
-ol.timeline-container li div {
+ol.traquer-timeline-container li div {
     display: none;
 }
 
-ol.timeline-container li div.tl-type {
+ol.traquer-timeline-container li div.tl-type {
     font-family: monospace;
     font-size: 11px;
     font-weight: normal;
 }
 
-ol.timeline-container li div.tl-selector {
+ol.traquer-timeline-container li div.tl-selector {
     top: 15px;
     font-family: monospace;
     font-size: 10px;
@@ -105,26 +105,36 @@ ol.timeline-container li div.tl-selector {
     color: #777;
 }
 
+ol.traquer-timeline-container li.selected::before {
+    border-width: 2px;
+    border-color: #000;
+}
+
 /* ---- Hover effects ---- */
-ol.timeline-container li:hover::before {
+ol.traquer-timeline-container li:hover::before {
     cursor: pointer;
     color: #000;
     border-width: 2px;
     border-color: #28e;
 }
 
-ol.timeline-container li:hover div {
+ol.traquer-timeline-container li:hover div {
     display: block;
     position: absolute;
     background: rgba(255,255,255, 0.8);
 }
 
-ol.timeline-container li:hover {
+ol.traquer-timeline-container li:hover {
     z-index: 9;
 }
 
+ol.traquer-timeline-container li.selected:hover::before {
+    border-width: 2px;
+    border-color: #000;
+}
+
 /* Track */
-.timeline-track {
+.traquer-timeline-track {
     position: fixed;
     height: 141px;
     width: 0px;
@@ -135,7 +145,7 @@ ol.timeline-container li:hover {
     z-index: 2147483639;
 }
 
-.timeline-track:before {
+.traquer-timeline-track:before {
     position: absolute;
     content: '';
     top: -8px;
@@ -147,7 +157,7 @@ ol.timeline-container li:hover {
     background: rgba(153, 187, 34, 0.3);
 }
 
-.timeline-track .current-event { 
+.traquer-timeline-track .current-event { 
     position: absolute;
     top: -87px;
     display: inline-block;

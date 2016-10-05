@@ -4,9 +4,9 @@
  * EventBase
  *
  **/
-var EventBase = function(traquer) {
-    if (!(this instanceof EventBase)) {
-        return new EventBase();
+Traquer.EventBase = function(traquer) {
+    if (!(this instanceof Traquer.EventBase)) {
+        return new Traquer.EventBase();
     }
 
     if(!traquer || !(traquer instanceof Traquer))
@@ -15,7 +15,7 @@ var EventBase = function(traquer) {
     this.traquer = traquer;
 }
 
-EventBase.prototype = {
+Traquer.EventBase.prototype = {
 
     getScrollTarget: function(element){
       

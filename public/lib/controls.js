@@ -1,22 +1,8 @@
-window.addEventListener('load', function() {
-    var recorder       = document.createElement('div');
-    recorder.className = 'traquer-recorder';
-    recorder.id        = 'traquer-recorder';
-    recorder.title     = 'Record';
-    controls           = new Controls();
-
-    controls.loadStyles();
-
-    recorder.addEventListener('click', controls.recording.bind(this, controls));
-
-    document.body.appendChild(recorder);
-});
-
 "use strict";
 
-var Controls = function(){
-    if (!(this instanceof Controls)) {
-        return new Controls();
+Traquer.Controls = function(){
+    if (!(this instanceof Traquer.Controls)) {
+        return new Traquer.Controls();
     }
 
     this.traquer = new Traquer();
@@ -27,7 +13,7 @@ var Controls = function(){
                     'reset.css'];
 }
 
-Controls.prototype.loadStyles = function(){
+Traquer.Controls.prototype.loadStyles = function(){
     var self   = this,
         head   = document.head,
         styles = head.querySelectorAll('link'),
@@ -51,11 +37,11 @@ Controls.prototype.loadStyles = function(){
     }
 }
 
-Controls.prototype.recording = function(controls, e){
+Traquer.Controls.prototype.recording = function(controls, e){
     var self     = controls,
         traquer  = self.traquer,
         recorder = e.target,
-        player   = document.querySelector('.player');
+        player   = document.querySelector('.traquer-player');
     
     if(!traquer.isRecording){
         traquer.start();
@@ -68,7 +54,7 @@ Controls.prototype.recording = function(controls, e){
         document.body.removeChild(player);
     }
     
-    var lzw = new Lzw();
+    var lzw = new Traquer.Lzw();
 
     recorder.className = 'traquer-recorder';
     traquer.stop();
@@ -85,15 +71,15 @@ Controls.prototype.recording = function(controls, e){
     self.player.call(self);
 }
 
-Controls.prototype.timeline = function(){
+Traquer.Controls.prototype.timeline = function(){
     var self              = this,
         traquer           = self.traquer,
         events            = traquer.recordedEvents,
-        timelineContainer = document.querySelector('ol.timeline-container');
+        timelineContainer = document.querySelector('ol.traquer-timeline-container');
 
     if(!timelineContainer){
         timelineContainer           = document.createElement('ol');
-        timelineContainer.className = 'timeline-container'; 
+        timelineContainer.className = 'traquer-timeline-container'; 
         document.body.appendChild(timelineContainer);
     }
     
@@ -165,10 +151,6 @@ Controls.prototype.timeline = function(){
                 currentEvent      = timelineContainer.querySelector('#' + id);
            
             if(lastTimeLine && 
-                /*(type != 'click' && type != 'keydown'  &&
-                type != 'keyup'  && type != 'keypress' &&
-                type.indexOf('DOM') == -1 &&
-                type.indexOf('select') == -1) &&*/
                 (percentInTimeLine > lastTimeLine - 10 && percentInTimeLine < lastTimeLine + 10)){
                 
                 
@@ -218,27 +200,34 @@ Controls.prototype.timeline = function(){
                 var recordedEvent = this.recordedEvents.filter(function(re){
                     return re.tid == id;
                 })[0];
-                console.log(recordedEvent);
+                
+                var li = e.target;
+
+                if(li.className.indexOf('selected') == -1)
+                    li.className += ' selected';
+                else
+                    li.className = li.className.replace('selected', '');
+                
+                self.editor(id, type, time);
+
             }.bind(traquer, id, type, time));
 
             lastTimeLine      = timeLineNode.lastTimeLine;
         }
     }
-
-    
 }
 
-Controls.prototype.player = function(){
+Traquer.Controls.prototype.player = function(){
     var self              = this,
         traquer           = self.traquer,
         events            = traquer.recordedEvents,
-        timelineContainer = document.querySelector('ol.timeline-container'),
-        timelineTrack     = document.querySelector('.timeline-track'),
-        player            = document.querySelector('.player');
+        timelineContainer = document.querySelector('ol.traquer-timeline-container'),
+        timelineTrack     = document.querySelector('.traquer-timeline-track'),
+        player            = document.querySelector('.traquer-player');
 
     if(!player){
         player           = document.createElement('div');
-        player.className = 'player';
+        player.className = 'traquer-player';
         player.title     = 'Replay';
         document.body.appendChild(player);
 
@@ -247,7 +236,7 @@ Controls.prototype.player = function(){
         traquer.playerTarget = player;
 
         player.addEventListener('stop', function(e){
-            player.className = 'player';
+            player.className = 'traquer-player';
         });
 
         player.addEventListener('click', function(events, e){
@@ -260,7 +249,7 @@ Controls.prototype.player = function(){
             }
 
             self.stop();
-            player.className = 'player';
+            player.className = 'traquer-player';
 
         }.bind(traquer, events));
     }
@@ -269,7 +258,7 @@ Controls.prototype.player = function(){
 
     if(!timelineTrack){
         timelineTrack           = document.createElement('div');
-        timelineTrack.className = 'timeline-track';
+        timelineTrack.className = 'traquer-timeline-track';
         document.body.appendChild(timelineTrack);
 
         timelineTrack.innerHTML = [
@@ -301,15 +290,15 @@ Controls.prototype.player = function(){
     }
 }
 
-Controls.prototype.reset = function(){
+Traquer.Controls.prototype.reset = function(){
     var self              = this,
         traquer           = self.traquer,
         events            = traquer.recordedEvents,
-        reset             = document.querySelector('.reset');
+        reset             = document.querySelector('.traquer-reset');
 
     if(!reset){
         reset           = document.createElement('div');
-        reset.className = 'reset';
+        reset.className = 'traquer-reset';
         reset.title     = 'Reset';
         document.body.appendChild(reset);
 
@@ -317,10 +306,10 @@ Controls.prototype.reset = function(){
 
         reset.addEventListener('click', function(events, e){
             var self = this,
-                timelineContainer = document.querySelector('ol.timeline-container'),
-                timelineTrack     = document.querySelector('.timeline-track'),
+                timelineContainer = document.querySelector('ol.traquer-timeline-container'),
+                timelineTrack     = document.querySelector('.traquer-timeline-track'),
                 currentEvent      = document.querySelector('.current-event'),
-                player            = document.querySelector('.player');
+                player            = document.querySelector('.traquer-player');
 
             self.recordedEvents = [];
             document.body.removeChild(player);
@@ -330,4 +319,21 @@ Controls.prototype.reset = function(){
             
         }.bind(traquer, events));
     }
+}
+
+Traquer.Controls.prototype.editor = function(id, type, time){
+    var self              = this,
+        traquer           = self.traquer,
+        events            = traquer.recordedEvents,
+        editor            = document.querySelector('.traquer-editor');
+
+    if(!editor){
+        editor            = document.createElement('div');
+        editor.className  = 'traquer-editor';
+        
+        document.body.appendChild(editor);
+    }
+
+    editor.innerHTML = '';
+    editor.innerHTML = id + ' ' + type + ' ' + time;
 }

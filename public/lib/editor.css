@@ -1,0 +1,8 @@
+.traquer-editor {
+  position: fixed;
+  bottom: 15px;
+  right: 14px;
+  width: 20vw;
+  height: 150px;
+  z-index: 9999999999;
+}

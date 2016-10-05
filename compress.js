@@ -27,28 +27,28 @@ walker.on('end', function() {
 
     new compressor.minify({
         type: 'no-compress',
-        fileIn: files,
+        fileIn: recompose(files),
         fileOut: out,
         callback: function(err, min){
             if(err)
                 console.log(err);
             
-            console.log('[1] joined ' + files.length + ' files.');
+            console.log('[1] joined ' + files.length + ' js files.');
 
             var gccCompressed = fs.readFileSync(out, 'utf8')
-            gccCompressed     = gccCompressed;//'(function(){' + gccCompressed + '})();';
+            gccCompressed     = gccCompressed;
 
             fs.writeFile(out, gccCompressed, function(err) {
 
                 new compressor.minify({
-                    type: 'gcc',
+                    type: 'yui-js',
                     fileIn: out,
                     fileOut: opt,
                     callback: function(err, min){
                         if(err)
                             console.log(err);
 
-                        console.log('[2] gcc compressed at', opt);
+                        console.log('[2] yui-js compressed ' + files.length + ' js files to', opt);
                         fs.unlink(out);
                         process.exit();
                     }
@@ -65,10 +65,34 @@ walker.on('end', function() {
             if(err)
                 console.log(err);
             
-            console.log('[2] yui css compressed ' + styles.length + ' files to ' + outcss);
+            console.log('[2] yui-css compressed ' + styles.length + ' css files to', outcss);
         }
     });
 });
+
+var recompose = function(files){
+    var traquer = files.filter(function(c){ if(c.indexOf('traquer.js') > -1) return c; })[0],
+        loader  = files.filter(function(c){ if(c.indexOf('loader.js') > -1) return c; })[0],
+        adequate = [], i;
+
+    for(i in files){
+        if(files.hasOwnProperty(i))
+            if(files[i].indexOf('traquer') == -1 &&
+                files[i].indexOf('loader') == -1 ){
+                    adequate.push(files[i]);
+                }
+    }
+
+    if(!traquer || !loader){
+        console.log('[e] core files missing.');
+        process.exit();
+    }
+
+    adequate.unshift(traquer);
+    adequate.push(loader);
+
+    return adequate;
+}
 
 var spin = function(message){
     var spinner = '|/-\\'.split(''), i = 0;
