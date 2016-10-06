@@ -1,0 +1,23 @@
+.traquer-list {
+  position: fixed;
+  bottom: 15px;
+  right: 14px;
+  width: 18vw;
+  height: 150px;
+  z-index: 2147483639;
+  line-height: 12px;
+  font-size: 11px;
+}
+
+.traquer-list .inner-list {
+  max-height: 100px;
+  display: block;
+  height: 150px;
+  overflow-y: auto;
+  height: 70px;
+  border-bottom: 1px solid #dfdfdf;
+}
+
+.traquer-list input {
+  vertical-align: sub;
+}

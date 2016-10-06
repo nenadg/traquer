@@ -10,7 +10,8 @@ Traquer.Controls = function(){
                     'timeline.css',
                     'recorder.css',
                     'player.css',
-                    'reset.css'];
+                    'reset.css',
+                    'track.css'];
 }
 
 Traquer.Controls.prototype.loadStyles = function(){
@@ -29,6 +30,7 @@ Traquer.Controls.prototype.loadStyles = function(){
     }
     
     if(!loaded){
+        console.warn('[i] load min styles.')
         var stylesheet = document.createElement('link');
         stylesheet.rel = 'stylesheet';
         stylesheet.type = 'text/css';
@@ -54,18 +56,11 @@ Traquer.Controls.prototype.recording = function(controls, e){
         document.body.removeChild(player);
     }
     
-    var lzw = new Traquer.Lzw();
-
     recorder.className = 'traquer-recorder';
     traquer.stop();
-
-    var enc = lzw.encode(traquer.recordedEvents);
-    var dec = lzw.decode(enc);
-
-    self.recordedEvents = dec;
-
-    console.log(lzw.getHumanReadableLength(enc));
     
+    var storage = new Traquer.Storage();
+    storage.save(traquer.recordedEvents);
 
     self.timeline.call(self);
     self.player.call(self);
@@ -128,7 +123,8 @@ Traquer.Controls.prototype.timeline = function(){
                 id           : eventId,
                 time         : event.time,
                 type         : event.type,
-                lastTimeLine : percentInTimeLine
+                lastTimeLine : percentInTimeLine,
+                selector     : event.selector
             };
 
             timeLineNodes.push(timeLineNode);
@@ -146,6 +142,7 @@ Traquer.Controls.prototype.timeline = function(){
                 type              = timeLineNode.type,
                 id                = timeLineNode.id,
                 time              = timeLineNode.time,
+                selector          = timeLineNode.selector,
                 percentInTime     = parseInt(time / last * 100),
                 percentInTimeLine = parseInt(percentInTime * tlcWidth / 100),
                 currentEvent      = timelineContainer.querySelector('#' + id);
@@ -196,21 +193,30 @@ Traquer.Controls.prototype.timeline = function(){
                 currentEvent.style.cssText += 'top: ' + topStyle + ';'; 
             }
 
-            currentEvent.addEventListener('click', function(id, type, time, e){
+            currentEvent.addEventListener('click', function(id, type, time, selector, e){
                 var recordedEvent = this.recordedEvents.filter(function(re){
                     return re.tid == id;
                 })[0];
                 
-                var li = e.target;
+                var li = e.target,
+                    others = li.parentNode.querySelectorAll('.selected'), i;
+
+                for(i in others){
+                    if(others.hasOwnProperty(i)){
+                        var selectedOther = others[i];
+                        // remove selected
+                        selectedOther.className = selectedOther.className.replace('selected', '');
+                    }
+                }
 
                 if(li.className.indexOf('selected') == -1)
                     li.className += ' selected';
                 else
                     li.className = li.className.replace('selected', '');
                 
-                self.editor(id, type, time);
+                self.editor(id, type, time, selector);
 
-            }.bind(traquer, id, type, time));
+            }.bind(traquer, id, type, time, selector));
 
             lastTimeLine      = timeLineNode.lastTimeLine;
         }
@@ -245,6 +251,11 @@ Traquer.Controls.prototype.player = function(){
             if(!self.isPlaying){
                 player.className += ' playing';
                 self.play(events);
+
+                var editor = document.querySelector('.traquer-editor');
+
+                if(editor)
+                    document.body.removeChild(editor);
                 return;
             }
 
@@ -309,19 +320,23 @@ Traquer.Controls.prototype.reset = function(){
                 timelineContainer = document.querySelector('ol.traquer-timeline-container'),
                 timelineTrack     = document.querySelector('.traquer-timeline-track'),
                 currentEvent      = document.querySelector('.current-event'),
-                player            = document.querySelector('.traquer-player');
+                player            = document.querySelector('.traquer-player'),
+                editor            = document.querySelector('.traquer-editor');
 
             self.recordedEvents = [];
             document.body.removeChild(player);
             document.body.removeChild(reset); 
             document.body.removeChild(timelineContainer);
             document.body.removeChild(timelineTrack);
+
+            if(editor)
+                document.body.removeChild(editor);
             
         }.bind(traquer, events));
     }
 }
 
-Traquer.Controls.prototype.editor = function(id, type, time){
+Traquer.Controls.prototype.editor = function(id, type, time, selector){
     var self              = this,
         traquer           = self.traquer,
         events            = traquer.recordedEvents,
@@ -334,6 +349,98 @@ Traquer.Controls.prototype.editor = function(id, type, time){
         document.body.appendChild(editor);
     }
 
+    var tpl = [
+        '<h3>Event `<span id="event-type-' + id + '">' + type + '</span>`</h3>',
+        '<span id="editor-close" class="close">x</span>',
+        '<p>Event executed at ' + time + 'ms from start.</p>',
+        '<p>Selector:<br/>',
+        '<i id="event-selector-' + id + '" class="selector">' + selector + '</i>',
+        '</p>',
+        '<p id="delete-event-' + id + '" class="button red">Delete event</p>',
+        '<p id="edit-event-' + id + '" class="button">Edit event</p>'
+    ].join('');
+
     editor.innerHTML = '';
-    editor.innerHTML = id + ' ' + type + ' ' + time;
+    editor.innerHTML = tpl;
+   
+    this.bindDelete(editor.querySelector('#delete-event-' + id), id);
+    this.bindEdit(editor.querySelector('#edit-event-' + id), id);
+    this.bindClose(editor.querySelector('#editor-close'));
+}
+
+Traquer.Controls.prototype.bindClose = function(el){
+    var self              = this;
+    
+    el.addEventListener('click', function(e){
+        var editor       = document.querySelector('.traquer-editor');
+        document.body.removeChild(editor);
+        self.timeline.call(self);
+    });
+}
+
+Traquer.Controls.prototype.bindDelete = function(el, id){
+    var self              = this,
+        traquer           = self.traquer,
+        events            = traquer.recordedEvents;
+    
+    el.addEventListener('click', function(e){
+        var currentEvent = events.filter(function(ef){ return ef.tid == id })[0],
+            editor       = document.querySelector('.traquer-editor');
+     
+        events.splice(events.indexOf(currentEvent), 1);
+        self.timeline.call(self);
+        document.body.removeChild(editor);
+    });
+}
+
+Traquer.Controls.prototype.bindEdit = function(el, id){
+    var self              = this;
+        
+    el.addEventListener('click', self.editFn.bind(self, el, id));
+}
+
+Traquer.Controls.prototype.editFn = function(el, id, e){
+    var self            = this,
+        traquer         = self.traquer,
+        events          = traquer.recordedEvents,
+        currentEvent    = events.filter(function(ef){ return ef.tid == id })[0],
+        editor          = document.querySelector('.traquer-editor'),
+        deleteEl        = document.querySelector('#delete-event-' + id),
+        eventTypeEl     = document.querySelector('#event-type-' + id),
+        eventSelectorEl = document.querySelector('#event-selector-' + id);
+    
+    el.removeEventListener('click', self.editFn, false);
+
+    if(deleteEl)
+        editor.removeChild(deleteEl);
+
+    eventTypeEl.setAttribute('contentEditable', true);
+    eventSelectorEl.setAttribute('contentEditable', true);
+
+    var clone        = el.cloneNode();
+    clone.id         = 'save-event-' + id;
+    clone.innerText  = 'Save';
+    clone.className += ' green'; 
+
+    clone.addEventListener('click', self.saveFn.bind(self, el, id));
+    editor.replaceChild(clone, el);  
+}
+
+Traquer.Controls.prototype.saveFn = function(el, id, e){
+     var self             = this,
+        traquer           = self.traquer,
+        events            = traquer.recordedEvents,
+        eventTypeEl       = document.querySelector('#event-type-' + id),
+        eventSelectorEl   = document.querySelector('#event-selector-' + id),
+        editor            = document.querySelector('.traquer-editor'),
+        currentEvent      = events.filter(function(ef){ return ef.tid == id })[0],
+        newType           = eventTypeEl.innerText,
+        newSelector       = eventSelectorEl.innerText;
+    
+    currentEvent.type                    = newType && newType.length ? newType.replace(/\s/g, '') : currentEvent.type;
+    currentEvent.selector                = newSelector && newSelector.length ? newSelector : currentEvent.selector;
+    events[events.indexOf(currentEvent)] = currentEvent;
+
+    self.timeline.call(self);
+    document.body.removeChild(editor);
 }

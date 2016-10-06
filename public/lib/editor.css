@@ -2,7 +2,62 @@
   position: fixed;
   bottom: 15px;
   right: 14px;
-  width: 20vw;
+  width: 18vw;
   height: 150px;
-  z-index: 9999999999;
+  z-index: 2147483640;
+  line-height: 12px;
+  font-size: 11px;
+  background: rgba(255,255,255,0.9);
+}
+
+.traquer-editor p {
+	margin-top: 4px;
+    margin-bottom: 4px;
+}
+
+.traquer-editor p.button {
+	border: 2px solid #28e;
+    padding: 5px;
+    border-radius: 4px;
+    max-width: 30%;
+    text-align: center;
+    float: left;
+    margin-left: 10px;
+    cursor: pointer;
+}
+
+.traquer-editor p.button.red {
+	border: 2px solid #c72525;
+}
+
+.traquer-editor p.button.green {
+	border: 2px solid rgba(153,187,34, 1);
+}
+
+.traquer-editor p.button:hover {
+	color: #888;
+}
+
+.traquer-editor i.selector {
+	color: #888;
+	font-size: 10px;
+}
+
+.traquer-editor *[contenteditable="true"] {
+	background: #DFDFFE;
+}
+
+.traquer-editor span.close {
+  width: 14px;
+  height: 14px;
+  position: absolute;
+  right: 0;
+  top: 0;
+  border: 2px solid rgba(34, 136, 238, 0.54);
+  border-radius: 2px;
+  padding: 0;
+  line-height: 7px;
+  padding-left: 2px;
+  cursor: pointer;
+  color: rgba(34, 136, 238, 0.54);
 }

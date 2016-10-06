@@ -550,6 +550,6 @@ Traquer.prototype = {
 
         percentage = (elements / eventsInfo.length) * 100;
             
-        return percentage;
+        return Math.round(percentage * 100) / 100;
     }
 }
