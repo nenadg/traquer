@@ -11,7 +11,9 @@ Traquer.Controls = function(){
                     'recorder.css',
                     'player.css',
                     'reset.css',
-                    'track.css'];
+                    'track.css',
+                    'editor.css',
+                    'storage.css'];
 }
 
 Traquer.Controls.prototype.loadStyles = function(){
