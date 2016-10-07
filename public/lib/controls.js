@@ -5,7 +5,7 @@ Traquer.Controls = function(){
         return new Traquer.Controls();
     }
 
-    this.traquer = new Traquer();
+    this.traquer = Traquer.getInstance();
     this.styles  = ['base.css',
                     'timeline.css',
                     'recorder.css',
@@ -13,7 +13,14 @@ Traquer.Controls = function(){
                     'reset.css',
                     'track.css',
                     'editor.css',
-                    'storage.css'];
+                    'storage.css',
+                    'modal.css'];
+
+    Traquer.Controls.__instance = this;
+}
+
+Traquer.Controls.getInstance = function(){
+    return this.__instance;
 }
 
 Traquer.Controls.prototype.loadStyles = function(){
@@ -81,6 +88,9 @@ Traquer.Controls.prototype.timeline = function(){
     }
     
     timelineContainer.innerHTML = '';   
+
+    if(!events.length)
+        return;
 
     var tlcBox   = timelineContainer.getBoundingClientRect(),
         tlcWidth = tlcBox.width,

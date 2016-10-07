@@ -10,14 +10,30 @@
 }
 
 .traquer-list .inner-list {
-  max-height: 100px;
+  max-height: 900px;
   display: block;
-  height: 150px;
+  height: 500px;
   overflow-y: auto;
-  height: 70px;
   border-bottom: 1px solid #dfdfdf;
+}
+
+.traquer-list .inner-list label {
+  width: 100%;
+  display: inline-block;
 }
 
 .traquer-list input {
   vertical-align: sub;
+  margin: 5px;
+}
+
+.traquer-list .button {
+  border: 2px solid #dfdfdf;
+  padding: 5px;
+  border-radius: 4px;
+  max-width: 30%;
+  text-align: center;
+  float: left;
+  margin-left: 10px;
+  cursor: pointer;
 }

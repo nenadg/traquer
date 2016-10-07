@@ -1,9 +1,11 @@
-window.addEventListener('load', function() {
+document.addEventListener('DOMContentLoaded', function() {
     var recorder       = document.createElement('div');
     recorder.className = 'traquer-recorder';
     recorder.id        = 'traquer-recorder';
     recorder.title     = 'Record';
-    var controls       = new Traquer.Controls(),
+    
+    var traquer        = new Traquer(),
+        controls       = new Traquer.Controls(),
     	storage        = new Traquer.Storage();
 
     controls.loadStyles();
@@ -12,5 +14,11 @@ window.addEventListener('load', function() {
 
     document.body.appendChild(recorder);
 
-    storage.list();
+    storage.hint();
+});
+
+window.addEventListener('hashchange', function(){
+    var storage        = new Traquer.Storage();
+
+    storage.hint();
 });

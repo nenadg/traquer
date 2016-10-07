@@ -8,7 +8,7 @@ var Traquer = function() {
     if (!(this instanceof Traquer)) {
         return new Traquer();
     }
-
+   
     this.index           = 0;
     this.logging         = false;
     this.recordedEvents  = [];
@@ -21,22 +21,32 @@ var Traquer = function() {
                             'DOMFocusIn',  'DOMFocusOut',     'selectstart',     'selectionchange',    'select',
                             'DOMActivate'];
 
-    var traquerBase = document.createElement('div');
-    traquerBase.className   = 'traquer-base';
-    document.body.appendChild(traquerBase);
+    var traquerBase = document.querySelector('.traquer-base');
+    
+    if(!traquerBase){                      
+        traquerBase = document.createElement('div');
+        traquerBase.className   = 'traquer-base';
+        document.body.appendChild(traquerBase);
 
-    window.onerror = function(message, url, lineNumber) {  
-        //save error and send to server for example.
-        var errorEvent = new Event('terror');
-        errorEvent.details = [message, url, lineNumber]
-        //return true;
-        traquerBase.dispatchEvent(errorEvent);
+        window.onerror = function(message, url, lineNumber) {  
+            //save error and send to server for example.
+            var errorEvent = new Event('terror');
+            errorEvent.details = [message, url, lineNumber]
+            //return true;
+            traquerBase.dispatchEvent(errorEvent);
+        }
+
+        traquerBase.addEventListener('terror', function(e){
+            console.log('[e] some error');
+            console.log(e);
+        });
     }
 
-    traquerBase.addEventListener('terror', function(e){
-        console.log('[e] some error');
-        console.log(e);
-    });
+    Traquer.__instance = this;
+}
+
+Traquer.getInstance = function(){
+    return this.__instance;
 }
 
 Traquer.prototype = {
@@ -549,7 +559,7 @@ Traquer.prototype = {
         }
 
         percentage = (elements / eventsInfo.length) * 100;
-            
+        
         return Math.round(percentage * 100) / 100;
     }
 }

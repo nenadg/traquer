@@ -5,7 +5,7 @@ Traquer.Storage = function(){
         return new Traquer.Storage();
     }
 
-    this.traquer = new Traquer();
+    this.traquer = Traquer.getInstance();
     this.lzw     = new Traquer.Lzw();
 
     this.unit    = function(){
@@ -14,7 +14,9 @@ Traquer.Storage = function(){
 
         return {
             location : location,
-            records  : undefined
+            records  : undefined,
+            name     : undefined,
+            time     : undefined
         }
     }
 }
@@ -24,16 +26,18 @@ Traquer.Storage.prototype.save = function(records){
         name    = 'traquer_' + Math.random().toString(36).substring(3).substr(0, 8);
 
     unit.records = records;
+    unit.name    = name;
+    unit.time    = Date.now();
 
     var encoded = this.lzw.encode(unit);
 
     console.log(this.lzw.getHumanReadableLength(encoded));
 
     localStorage.setItem(name, encoded);
-    this.list();
+    this.hint();
 }
 
-Traquer.Storage.prototype.getList = function(){
+Traquer.Storage.prototype.getRawList = function(){
     var self = this, 
         keys = [], 
         list = [], 
@@ -57,14 +61,55 @@ Traquer.Storage.prototype.getList = function(){
         }
     }
 
-    return list;
+    return list.sort(function(a, b){ return b.time - a.time });
 }
 
-Traquer.Storage.prototype.list = function(){
+Traquer.Storage.prototype.getHTMLList = function(rawList){
+     var self              = this,
+        traquer            = self.traquer,
+        tpl                = [
+                '<h3>Saved Cases</h3>',
+                '<p>Select cases you wish to run.<br/>',
+                'Cases with similarity less than 50% to current DOM tree won\'t be selectable.</p>',
+                '<p style="float:left;" id="traquer-storage-override" class="button">Override similarity restriction</p><p>&nbsp;</p>',
+                '<form style="clear:left;" id="traquer-form" class="inner-list">'
+            ], 
+        i;
+
+    for(i in rawList){
+        if(rawList.hasOwnProperty(i)){
+            var item       = rawList[i],
+                similarity = traquer.getSimilarity(item.records),
+                disabled   = !isNaN(similarity) ? similarity < 50 : true;
+
+            var labelTpl = [
+                '<label>',
+                '<input ' + (disabled? 'disabled' : '') + ' type="checkbox" name="' + item.name + '" time="' + item.time + '"/>',
+                'Case on <span style="color: #925e8b;">' + item.location.href + '</span>, <br/>',
+                ' &bull; DOM similarity to current location: ' + similarity + '%, <br/>',
+                ' &bull; Captured event count ' + item.records.length + ', <br/>',
+                ' &bull; Captured time <span style="color: #28e;">' + new Date(item.time) + '</span>.',
+                ' <br/>&nbsp;',
+                '</label>'
+            ].join('');
+
+            tpl.push(labelTpl);
+        }
+    }
+
+    tpl.push('</form>');
+
+    tpl.push('<p id="traquer-storage-run" class="button">Run selected</p>')
+
+    return tpl.join('');
+}
+
+Traquer.Storage.prototype.hint = function(){
     var self              = this,
         traquer           = self.traquer,
         events            = traquer.recordedEvents,
-        list              = document.querySelector('.traquer-list');
+        list              = document.querySelector('.traquer-list'),
+        rawList           = self.getRawList()
 
     if(!list){
         list              = document.createElement('div');
@@ -73,36 +118,86 @@ Traquer.Storage.prototype.list = function(){
         document.body.appendChild(list);
     }
 
-    var saved = self.getList(), i, 
-        tpl = ['<h3>Saved Cases</h3>', '<div class="inner-list">'];
-
-    for(i in saved){
-        if(saved.hasOwnProperty(i)){
-            var item       = saved[i],
-                similarity = traquer.getSimilarity(item.records);
-
-            var labelTpl = [
-                '<label>',
-                '<input type="checkbox" name="' + i + '" value="' + i + '" />',
-                'Location: ' + item.location.hash + '<br/>',
-                'Similarity to current: ' + similarity + '%</label><br />'
-            ].join('');
-
-            tpl.push(labelTpl);
-        }
+    if(!rawList.length){
+        document.body.removeChild(list);
+        return;
     }
 
-    tpl.push('</div>');
-   
-    tpl = tpl.join('');
-   /* var tpl = [
-        '<h3>Saved Cases</h3>',
-        '<label><input type="checkbox" name="animal" value="Cat" />Cats </label>',
-        '<input type="checkbox" name="animal" value="Dog" />Dogs<br />',
-        '<input type="checkbox" name="animal" value="Bird" />Birds<br />'
-
-    ].join('');*/
+    var tpl = [
+        '<h3>You have ' + rawList.length + ' cases for this page</h3>',
+        '<p id="traquer-show-storage" class="button">Manage list</p>'
+    ].join('');
 
     list.innerHTML = tpl;
+
+    var showStorage = list.querySelector('#traquer-show-storage');
+        
+    showStorage.addEventListener('click', function(e){
+        var modal        = new Traquer.Modal(),
+            renderedList = self.getHTMLList(rawList);
+
+        modal.open.call(modal, 'Manage List', renderedList);
+
+        var storageRun = document.querySelector('#traquer-storage-run'),
+            override    = list.querySelector('#traquer-storage-override');
+
+        storageRun.addEventListener('click', function(e){
+            var form   = document.querySelector('#' + modal.id + ' form'),
+                inputs = [].slice.call(form.querySelectorAll('input')),
+                data   = [];
+            
+            inputs.forEach(function(input) {
+                if(input.checked)
+                    data.push({ name: input.name, time: input.getAttribute('time') });
+            });
+
+            data = data.sort(function(a,b){
+                return a.time - b.time
+            });
+
+            var events = [], i;
+            for(i in data){
+                if(data.hasOwnProperty(i)){
+                    var name    = data[i].name,
+                        unit    = rawList.filter(function(c){
+                            return c.name == name;
+                        })[0];
+
+                    if(unit){
+                        var last = events[events.length - 1],
+                            time = 0;
+
+                        if(last)
+                            time = last.time;
+
+                        unit.records.forEach(function(record){
+                           
+                            record.time += time;
+                        });
+
+                        events = events.concat(unit.records);
+                    }
+                }
+            }
+
+            traquer.recordedEvents = events;
+            var controls = Traquer.Controls.getInstance();
+
+            controls.timeline.call(controls);
+            controls.player.call(controls);
+            modal.close();
+        });
+
+        override.addEventListener('click', function(e){
+            var form   = document.querySelector('#' + modal.id + ' form'),
+                inputs = [].slice.call(form.querySelectorAll('input'));
+
+            inputs.forEach(function(input){
+                input.removeAttribute('disabled');
+            });
+
+            e.target.parentElement.removeChild(e.target);
+        });
+    });
 }
 
