@@ -163,8 +163,12 @@ Traquer.Controls.prototype.timeline = function(){
                 (percentInTimeLine > lastTimeLine - 10 && percentInTimeLine < lastTimeLine + 10)){
                 
                 
-                var  prevEvent     = currentEvent.previousSibling,
-                    currentStyle  = window.getComputedStyle(currentEvent),
+                var prevEvent     = currentEvent.previousSibling;
+
+                if(!prevEvent)
+                    continue;
+
+                var currentStyle  = window.getComputedStyle(currentEvent),
                     prevStyle     = window.getComputedStyle(prevEvent),
                     currentTop    = Math.abs(Math.round(parseFloat(currentStyle.top.replace('px', '')) * 100 / 100)),
                     prevTop       = Math.abs(Math.round(parseFloat(prevStyle.top.replace('px', '')) * 100 / 100)),
@@ -187,7 +191,7 @@ Traquer.Controls.prototype.timeline = function(){
                         topStyle = -topStyle;
                         topStyle += 'px';     
                 }
-                else{
+                else {
 
                     if(prevTop == currentTop)
                         topStyle = currentTop + 18;
