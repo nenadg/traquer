@@ -42,6 +42,7 @@
 .traquer-modal-content .modal-body {
     padding: 15px;
     display: inline-table;
+    width: 90%;
 }
 
 .traquer-modal-content .modal-content {

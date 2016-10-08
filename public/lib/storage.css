@@ -37,3 +37,7 @@
   margin-left: 10px;
   cursor: pointer;
 }
+
+.traquer-list .button.red {
+  border: 2px solid #c72525;
+}

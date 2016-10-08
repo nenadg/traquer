@@ -37,6 +37,10 @@ Traquer.Storage.prototype.save = function(records){
     this.hint();
 }
 
+Traquer.Storage.prototype.remove = function(name){
+    localStorage.removeItem(name);
+}
+
 Traquer.Storage.prototype.getRawList = function(){
     var self = this, 
         keys = [], 
@@ -67,13 +71,7 @@ Traquer.Storage.prototype.getRawList = function(){
 Traquer.Storage.prototype.getHTMLList = function(rawList){
      var self              = this,
         traquer            = self.traquer,
-        tpl                = [
-                '<h3>Saved Cases</h3>',
-                '<p>Select cases you wish to run.<br/>',
-                'Cases with similarity less than 50% to current DOM tree won\'t be selectable.</p>',
-                '<p style="float:left;" id="traquer-storage-override" class="button">Override similarity restriction</p><p>&nbsp;</p>',
-                '<form style="clear:left;" id="traquer-form" class="inner-list">'
-            ], 
+        tpl                = [], 
         i;
 
     for(i in rawList){
@@ -86,8 +84,8 @@ Traquer.Storage.prototype.getHTMLList = function(rawList){
                 '<label>',
                 '<input ' + (disabled? 'disabled' : '') + ' type="checkbox" name="' + item.name + '" time="' + item.time + '"/>',
                 'Case on <span style="color: #925e8b;">' + item.location.href + '</span>, <br/>',
-                ' &bull; DOM similarity to current location: ' + similarity + '%, <br/>',
-                ' &bull; Captured event count ' + item.records.length + ', <br/>',
+                ' &bull; DOM similarity to current location <span style="color: #28e;">' + similarity + '%</span>, <br/>',
+                ' &bull; Captured event count <span style="color: #28e;">' + item.records.length + '</span>, <br/>',
                 ' &bull; Captured time <span style="color: #28e;">' + new Date(item.time) + '</span>.',
                 ' <br/>&nbsp;',
                 '</label>'
@@ -99,9 +97,115 @@ Traquer.Storage.prototype.getHTMLList = function(rawList){
 
     tpl.push('</form>');
 
-    tpl.push('<p id="traquer-storage-run" class="button">Run selected</p>')
+    return tpl.join('');
+}
+
+Traquer.Storage.prototype.getButtons = function(){
+    var tpl = [
+        '<p style="float: right;" id="traquer-storage-run" class="button">Run selected</p>',
+        '<p style="float: right;" id="traquer-storage-delete" class="button red">Delete selected</p>'
+    ];
 
     return tpl.join('');
+}
+
+Traquer.Storage.prototype.getModal = function(rawList){
+    var self    = this,
+        traquer = self.traquer,
+        modal   = new Traquer.Modal({ 
+                    close: function(){
+                        self.hint();
+                    }
+                });
+
+    var modalBody = ['<h3>Saved Cases</h3>',
+                     '<p>Select cases you wish to run.<br/>',
+                     'Cases with similarity less than 50% to current DOM tree won\'t be selectable.</p>',
+                     '<p style="float:left;" id="traquer-storage-override" class="button">Override similarity restriction</p><p>&nbsp;</p>',
+                     '<form style="clear:left;" id="traquer-form" class="inner-list">'].join('');
+
+    var renderedList = self.getHTMLList(rawList),
+        modalButtons = self.getButtons(),
+        modalHtml    = modalBody + renderedList + modalButtons;
+
+    modal.open.call(modal, 'Manage List', modalHtml);
+
+    var storageRun    = document.querySelector('#traquer-storage-run'),
+        storageDelete = document.querySelector('#traquer-storage-delete'),
+        override      = document.querySelector('#traquer-storage-override');
+
+    storageRun.addEventListener('click', function(e){
+        var form   = document.querySelector('#' + modal.id + ' form'),
+            inputs = [].slice.call(form.querySelectorAll('input')),
+            data   = [];
+        
+        inputs.forEach(function(input) {
+            if(input.checked)
+                data.push({ name: input.name, time: input.getAttribute('time') });
+        });
+
+        data = data.sort(function(a,b){
+            return a.time - b.time
+        });
+
+        var events = [], i;
+        for(i in data){
+            if(data.hasOwnProperty(i)){
+                var name    = data[i].name,
+                    unit    = rawList.filter(function(c){
+                        return c.name == name;
+                    })[0];
+
+                if(unit){
+                    var last = events[events.length - 1],
+                        time = 0;
+
+                    if(last)
+                        time = last.time;
+
+                    unit.records.forEach(function(record){
+                       
+                        record.time += time;
+                    });
+
+                    events = events.concat(unit.records);
+                }
+            }
+        }
+
+        traquer.recordedEvents = events;
+        var controls = Traquer.Controls.getInstance();
+
+        controls.timeline.call(controls);
+        controls.player.call(controls);
+        modal.close();
+    });
+
+    storageDelete.addEventListener('click', function(e){
+        var form   = document.querySelector('#' + modal.id + ' form'),
+            inputs = [].slice.call(form.querySelectorAll('input')),
+            data   = [];
+        
+        inputs.forEach(function(input) {
+            if(input.checked)
+                self.remove(input.name);
+        });
+
+        var renderedList = self.getHTMLList(self.getRawList());
+
+        form.innerHTML   = renderedList;
+    });
+
+    override.addEventListener('click', function(e){
+        var form   = document.querySelector('#' + modal.id + ' form'),
+            inputs = [].slice.call(form.querySelectorAll('input'));
+
+        inputs.forEach(function(input){
+            input.removeAttribute('disabled');
+        });
+
+        e.target.parentElement.removeChild(e.target);
+    });
 }
 
 Traquer.Storage.prototype.hint = function(){
@@ -133,71 +237,7 @@ Traquer.Storage.prototype.hint = function(){
     var showStorage = list.querySelector('#traquer-show-storage');
         
     showStorage.addEventListener('click', function(e){
-        var modal        = new Traquer.Modal(),
-            renderedList = self.getHTMLList(rawList);
-
-        modal.open.call(modal, 'Manage List', renderedList);
-
-        var storageRun = document.querySelector('#traquer-storage-run'),
-            override    = list.querySelector('#traquer-storage-override');
-
-        storageRun.addEventListener('click', function(e){
-            var form   = document.querySelector('#' + modal.id + ' form'),
-                inputs = [].slice.call(form.querySelectorAll('input')),
-                data   = [];
-            
-            inputs.forEach(function(input) {
-                if(input.checked)
-                    data.push({ name: input.name, time: input.getAttribute('time') });
-            });
-
-            data = data.sort(function(a,b){
-                return a.time - b.time
-            });
-
-            var events = [], i;
-            for(i in data){
-                if(data.hasOwnProperty(i)){
-                    var name    = data[i].name,
-                        unit    = rawList.filter(function(c){
-                            return c.name == name;
-                        })[0];
-
-                    if(unit){
-                        var last = events[events.length - 1],
-                            time = 0;
-
-                        if(last)
-                            time = last.time;
-
-                        unit.records.forEach(function(record){
-                           
-                            record.time += time;
-                        });
-
-                        events = events.concat(unit.records);
-                    }
-                }
-            }
-
-            traquer.recordedEvents = events;
-            var controls = Traquer.Controls.getInstance();
-
-            controls.timeline.call(controls);
-            controls.player.call(controls);
-            modal.close();
-        });
-
-        override.addEventListener('click', function(e){
-            var form   = document.querySelector('#' + modal.id + ' form'),
-                inputs = [].slice.call(form.querySelectorAll('input'));
-
-            inputs.forEach(function(input){
-                input.removeAttribute('disabled');
-            });
-
-            e.target.parentElement.removeChild(e.target);
-        });
+        self.getModal(rawList);
     });
 }
 

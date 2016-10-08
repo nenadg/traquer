@@ -1,12 +1,16 @@
 "use strict";
 
-Traquer.Modal = function(){
+Traquer.Modal = function(config){
     if (!(this instanceof Traquer.Modal)) {
         return new Traquer.Modal();
     }
 
     this.id      = 'traquer_modal_' + Math.random().toString(36).substring(3).substr(0, 8);
     this.traquer = Traquer.getInstance();
+
+    if(config){
+      this.closeFn = config.close || function(){};
+    }
 }
 
 Traquer.Modal.prototype.open = function(title, body){
@@ -36,6 +40,7 @@ Traquer.Modal.prototype.close = function(e){
     modalContainer = list.querySelector('#modal-container-' + this.id);
 
   list.removeChild(modalContainer);
+  this.closeFn();
 }
 
 Traquer.Modal.prototype.getTpl = function(){
