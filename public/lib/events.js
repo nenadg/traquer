@@ -44,7 +44,7 @@ Traquer.EventBase.prototype = {
         try {
           evt[i] = raw[i];
         } catch(e){ 
-          // cant assigned private property 
+          // cant assign private property 
         }
       }
       return evt;
@@ -53,9 +53,6 @@ Traquer.EventBase.prototype = {
     mouseEvents: function(eventInfo, element) {
         var evt = new MouseEvent(eventInfo.type, eventInfo.raw);
         evt = this.shallowCopy(evt, eventInfo.raw);
-
-        //if(eventInfo.type == 'click')
-        //    element.focus();
         
         this.traquer.toggleStopPropagation(eventInfo, evt);
         
@@ -92,10 +89,6 @@ Traquer.EventBase.prototype = {
       if(eventInfo.type == 'focusout'|| eventInfo.type == 'DOMFocusOut')
         element.blur();
 
-      /*var evt = new FocusEvent(eventInfo.type, eventInfo.raw);
-      evt = this.shallowCopy(evt, eventInfo.raw);*/
-
-      //element.dispatchEvent(evt);
       element.dispatchEvent(new FocusEvent(type, element));
     },
 
@@ -137,10 +130,6 @@ Traquer.EventBase.prototype = {
     UIEvents: function(eventInfo, element) {
       var evt = new UIEvent(eventInfo.type, eventInfo.raw);
       element.dispatchEvent(evt);
-    },
-
-    selectionEvents: function(eventInfo, element) {
-     this.UIEvents(eventInfo, element);
     },
 
     event: function(eventInfo, element){

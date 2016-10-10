@@ -15,7 +15,7 @@
     margin: 2% auto;
     padding: 0px;
     border: 1px solid #888;
-    width: 50%; 
+    width: 50vw; 
 }
 
 .traquer-modal-content .close {
@@ -42,7 +42,7 @@
 .traquer-modal-content .modal-body {
     padding: 15px;
     display: inline-table;
-    width: 90%;
+    width: 100%;
 }
 
 .traquer-modal-content .modal-content {

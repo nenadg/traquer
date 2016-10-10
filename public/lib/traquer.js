@@ -295,7 +295,7 @@ Traquer.prototype = {
                     break;
                 case 'selectstart':
                 case 'selectionchange':
-                    events.focusEvents(eventInfo, eventElement);  // was .selectionEvents
+                    events.focusEvents(eventInfo, eventElement);
                     break;
                 case 'scroll':
                 case 'select':
