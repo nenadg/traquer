@@ -13,6 +13,7 @@ var Traquer = function() {
     this.logging         = false;
     this.recordedEvents  = [];
     this.previousElement = null;
+    this.domWatchCounter = 0;
 
     this.eventNames      = ['mousemove',   'mouseenter',      'mouseleave',      'mouseover',          'mousedown', 
                             'mouseup',     'mouseout',        'click',           'scroll',             'contextmenu', 
@@ -29,15 +30,20 @@ var Traquer = function() {
         document.body.appendChild(traquerBase);
 
         window.onerror = function(message, url, lineNumber) {  
-            //save error and send to server for example.
-            var errorEvent = new Event('terror');
+
+            var errorEvent = new Event('traquerfail');
             errorEvent.details = [message, url, lineNumber]
-            //return true;
+           
             traquerBase.dispatchEvent(errorEvent);
         }
 
-        traquerBase.addEventListener('terror', function(e){
-            console.log('[e] some error');
+        traquerBase.addEventListener('traquerfail', function(e){
+            console.log('[e] Event execution failed.');
+            console.log(e);
+        });
+
+        traquerBase.addEventListener('traquerwarn', function(e){
+            console.warn('[e] Event execution warning.');
             console.log(e);
         });
     }
@@ -95,6 +101,8 @@ Traquer.prototype = {
             self.mousePosition.y = event.clientY;
         });
 
+        document.addEventListener('DOMSubtreeModified', self.domWatch);
+
         if(log)
             this.logging = true;
     },
@@ -114,6 +122,8 @@ Traquer.prototype = {
             self.playerTarget.dispatchEvent(stopEvent);
         }
 
+        document.removeEventListener('DOMSubtreeModified', self.domWatch, false);
+
         return this.recordedEvents;
     },
 
@@ -129,6 +139,29 @@ Traquer.prototype = {
         return e;
     },
 
+    createTrackingObject: function(evt){
+        var self = this;
+
+        return {
+            tid        : self.getId(),
+            index      : self.index,
+            x          : self.mousePosition.x,
+            y          : self.mousePosition.y,
+            time       : new Date().getTime() - self.recordingStartTime,
+            raw        : self.copyEventObject(evt),
+            type       : evt.type,
+            id         : evt.target.id,
+            targetType : evt.target.tagName? evt.target.tagName.toLowerCase(): null,
+            value      : evt.target.value || evt.target.text,
+            attrs      : (function(){
+                return self.getAttributes(evt.target);
+            })(),
+            classList: (function(){
+                return self.getClassess(evt.target);
+            })()
+        }
+    },
+
     processEvent: function(evt) {
         var self = this;
 
@@ -137,24 +170,7 @@ Traquer.prototype = {
         
         if (self.isEventObservable(evt) || self.isMouseDown) {
 
-            var trackingObject = {
-                tid        : self.getId(),
-                index      : this.index,
-                x          : self.mousePosition.x,
-                y          : self.mousePosition.y,
-                time       : new Date().getTime() - self.recordingStartTime,
-                raw        : self.copyEventObject(evt),
-                type       : evt.type,
-                id         : evt.target.id,
-                targetType : evt.target.tagName? evt.target.tagName.toLowerCase(): null,
-                value      : evt.target.value || evt.target.text,
-                attrs      : (function(){
-                    return self.getAttributes(evt.target);
-                })(),
-                classList: (function(){
-                    return self.getClassess(evt.target);
-                })()
-            };
+            var trackingObject = self.createTrackingObject(evt);
 
             // don't click your controls
             if(trackingObject.id != 'traquer-recorder'){
@@ -166,7 +182,7 @@ Traquer.prototype = {
 
                     delete trackingObject.classList;
                     delete trackingObject.attrs;
-                    //delete trackingObject.targetType;
+                    self.domWatchCounter = 0;
 
                     self.recordedEvents.push(trackingObject);
                     this.index++;
@@ -220,6 +236,22 @@ Traquer.prototype = {
         this.eventsScheduler();
     },
 
+    domWatch: function(evt){
+        var self           = Traquer.getInstance(),
+            trackingObject = self.createTrackingObject(evt);
+
+        if(self.domWatchCounter > 100){ // this number is arbitrary; it should relate to number of dom elements
+            delete trackingObject.classList;
+            delete trackingObject.attrs;
+
+            self.domWatchCounter = 0;
+            
+            self.recordedEvents.push(trackingObject);
+        }
+        else
+            self.domWatchCounter++;
+    },
+
     eventEmitter: function(eventInfo) {
         var self = this;
 
@@ -234,7 +266,9 @@ Traquer.prototype = {
 
             if(!selector){
                 console.warn('[f] Cant find element by current selector, probably not there.', eventInfo.selector);
+                return;
             }
+            console.log(eventInfo.selector);
 
             if(!this.previousElement){
                 this.previousElement = eventElement.parentElement;
@@ -456,6 +490,7 @@ Traquer.prototype = {
             selectorString   = self.targetType + traquer.getSelector(self.attrs, self.classList, self.value, self.id),
             firstFound       = document.querySelector(selectorString),
             selectedElements = document.querySelectorAll(selectorString),
+            domTree          = [],
             selectedElement;
         
         if(selectedElements.length > 1){
@@ -474,21 +509,59 @@ Traquer.prototype = {
                     intersection = traquer.getIntersection(currentElement, motionsBoundingBox);
                     
                     if(intersection){
-                        selectedElement = currentElement == firstFound ? currentElement.parentElement : currentElement;
+
+                        while(currentElement != document.body ){
+                            var attributes = traquer.getAttributes(currentElement),
+                                classes    = traquer.getClassess(currentElement);
+                               
+
+                            if(attributes.length && classes.length){
+                                domTree.push(traquer.getSelector(attributes, classes, currentElement.value, currentElement.id));
+                                
+                            }
+
+                            if(currentElement.parentElement)
+                                currentElement = currentElement.parentNode;
+                           
+                        }
+
+                        //selectedElement = currentElement == firstFound ? currentElement.parentElement : currentElement;
                     }
                 }
             }
         }
 
-        if(selectedElement && selectedElement != firstFound){
+        /*if(selectedElement && selectedElement != firstFound){
             var attributes = traquer.getAttributes(selectedElement),
                 classes    = traquer.getClassess(selectedElement);
 
             if(attributes.length && classes.length){
                 selectorString = traquer.getSelector(attributes, classes, selectedElement.value, selectedElement.id) + ' > ' + selectorString ; 
             }
-        }
+        }*/
 
+        domTree = domTree.reverse();//.join(' > ');
+        
+        var izd = 'body ';
+        for(var i in domTree){
+            if(domTree.hasOwnProperty(i)){
+                var s = domTree[i];
+                izd += ' ' + s
+
+                var currentElement = document.querySelector(izd);
+
+                if(currentElement){
+                    var attributes = traquer.getAttributes(currentElement),
+                        classes    = traquer.getClassess(currentElement);
+
+                    selectorString = traquer.getSelector(attributes, classes, currentElement.value, currentElement.id);
+                }
+                else
+                    console.log(s);
+            }
+        }
+        
+        //selectorString = self.targetType + traquer.getSelector(self.attrs, self.classList, self.value, self.id);
         return selectorString;
     },
 
@@ -540,15 +613,33 @@ Traquer.prototype = {
         return found;
     },
 
+    /**
+     * Checks for similiraty between current and saved DOM tree
+     * by checking if saved selectors can find elements in current document.
+     * First DOMSubtreeModified event marks the start to ignore matching,
+     * the last marks the end; This helps for matching scenarios on 
+     * the same page, that have bigger mutation footprint.
+     */
     getSimilarity: function(eventsInfo){
-        var elements = 0, percentage = 0, i;
+        var elements    = 0, 
+            percentage  = 0,
+            stopMaching = false,
+            i;
 
         for(i in eventsInfo){
             if(eventsInfo.hasOwnProperty(i)){
                 var eventInfo = eventsInfo[i],
                     similar = document.querySelector(eventInfo.selector);
                 
-                if(similar){
+                if(eventInfo.type == 'DOMSubtreeModified')
+                    stopMaching = !stopMaching;
+
+                if(stopMaching){
+                    elements++;
+                    continue;
+                }
+
+                if(similar && !stopMaching){
                     var style  = window.getComputedStyle(similar),
                         hidden = /*style.display == 'none' || */style.visibility == 'hidden';
 
