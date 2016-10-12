@@ -286,6 +286,8 @@ Traquer.Controls.prototype.player = function(){
     if(!timelineTrack){
         timelineTrack           = document.createElement('div');
         timelineTrack.className = 'traquer-timeline-track';
+        timelineTrack.draggable = true;
+        
         document.body.appendChild(timelineTrack);
 
         timelineTrack.innerHTML = [
@@ -369,7 +371,7 @@ Traquer.Controls.prototype.editor = function(id, type, time, selector){
         '<h3>Event `<span id="event-type-' + id + '">' + type + '</span>`</h3>',
         '<span id="editor-close" class="close">x</span>',
         '<p>Event executed at ' + time + 'ms from start.</p>',
-        '<p>Selector:<br/>',
+        '<p class="editor-event-selector">Selector:<br/>',
         '<i id="event-selector-' + id + '" class="selector">' + selector + '</i>',
         '</p>',
         '<p id="delete-event-' + id + '" class="button red">Delete event</p>',

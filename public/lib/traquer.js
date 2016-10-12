@@ -153,12 +153,8 @@ Traquer.prototype = {
             id         : evt.target.id,
             targetType : evt.target.tagName? evt.target.tagName.toLowerCase(): null,
             value      : evt.target.value || evt.target.text,
-            attrs      : (function(){
-                return self.getAttributes(evt.target);
-            })(),
-            classList: (function(){
-                return self.getClassess(evt.target);
-            })()
+            attrs      :  self.getAttributes(evt.target),
+            classList  : self.getClassess(evt.target)
         }
     },
 
@@ -173,13 +169,15 @@ Traquer.prototype = {
             var trackingObject = self.createTrackingObject(evt);
 
             // don't click your controls
-            if(trackingObject.id != 'traquer-recorder'){
-
-                trackingObject.selector = self.createSelector.call(trackingObject, self);
+            if(trackingObject.id != 'traquer-recorder' &&
+               trackingObject.id != 'traquer-player' &&
+               trackingObject.id != 'traquer-reset'){
+                var selector = self.createSelector.call(trackingObject, self),
+                    element  = document.querySelector(selector);
 
                 // if selector is valid, collect trackingObject
-                if(document.querySelectorAll(trackingObject.selector)){
-
+                if(element){
+                    trackingObject.selector = self.createXPathFromElement(element);
                     delete trackingObject.classList;
                     delete trackingObject.attrs;
                     self.domWatchCounter = 0;
@@ -256,19 +254,26 @@ Traquer.prototype = {
         var self = this;
 
         if (eventInfo){
-            var selector     = document.querySelector(eventInfo.selector),
-                eventElement = selector ? selector : document.elementFromPoint(eventInfo.x, eventInfo.y), // fallback
+            var eventElement = self.lookupElementByXPath(eventInfo.selector),
                 fakeCursor   = self.getFakeCursor(),
                 events       = new Traquer.EventBase(self);
 
             fakeCursor.style.top  = eventInfo.y + 'px';
             fakeCursor.style.left = eventInfo.x + 'px';
 
-            if(!selector){
-                console.warn('[f] Cant find element by current selector, probably not there.', eventInfo.selector);
-                return;
+            if(!eventElement){
+                eventElement = document.elementFromPoint(eventInfo.x, eventInfo.y);
+                console.log('');
+                console.warn('[f] lookupElementByXPath failed, will use elementFromPoint, details: ');
+                console.warn('[|-->] failed     : ', eventInfo.selector);
+                console.warn('[|-->] from point : ', self.createXPathFromElement(eventElement));
+                
+                // check similarity between elementFromPoint and eventInfo.selector
+                if(!eventElement){
+                    console.error('[f] nothing found.');
+                    return;
+                }
             }
-            console.log(eventInfo.selector);
 
             if(!this.previousElement){
                 this.previousElement = eventElement.parentElement;
@@ -367,6 +372,7 @@ Traquer.prototype = {
         this.fakeCursor.style.position     = 'fixed';
         this.fakeCursor.style.borderRadius = '10px';
         this.fakeCursor.style.zIndex       = '2147483647';
+        this.fakeCursor.style.border       = '1px solid red';
 
         document.body.appendChild(this.fakeCursor);
     },
@@ -425,9 +431,39 @@ Traquer.prototype = {
 
         return classes;
     },
+    
+    ignoredAttributes: [
+        'selected',
+        'over',
+        'dirty',
+        'href',
+        'valign',
+        'role',
+        'tabindex',
+        'over',
+        'dirty',
+        'selected',
+        'focused',
+        'focus',
+        'active',
+        'pressed'
+    ],
+
+    matchIgnored: function(attribute){
+        var self = this;
+       
+        return !!self.ignoredAttributes.map(function(p){
+            if(attribute.indexOf(p) > -1) 
+                return p; 
+        }).filter(function(c){
+            if(c)
+                return c;
+        }).length;
+    },
 
     getSelector: function(attrs, classList, value, id){
-        var selectorString = '';
+        var self = this,
+            selectorString = '';
         
         if(attrs.length > 0){
 
@@ -438,18 +474,10 @@ Traquer.prototype = {
                     if(attrs[i] === 'value'){
                         selectorString += '[' + attrs[i] + '="' + value + '"]';
                     } 
-                    else if (attrs[i] !== undefined)  {
-                        var knownSelectors = attrs[i].match(/class/g) ||
-                                             attrs[i].match(/selected/g) ||
-                                             attrs[i].match(/over/g) ||
-                                             attrs[i].match(/dirty/g) ||
-                                             attrs[i].match(/selectable/g) ||
-                                             attrs[i].match(/href/g) ||
-                                             attrs[i].match(/valign/g) ||
-                                             attrs[i].match(/role/g) ||
-                                             attrs[i].match(/tabindex/g);
-
-                        if(!knownSelectors){
+                    else if (attrs[i] !== undefined) {
+                        var ignoredAttribute = self.matchIgnored(attrs[i]);
+                                          
+                        if(!ignoredAttribute){
                             selectorString += '[' + attrs[i] + ']';
                         }
                     }
@@ -463,15 +491,9 @@ Traquer.prototype = {
             for(i in classList){
 
                 if(classList.hasOwnProperty(i)){
-                    var knownSelectors = classList[i].match(/selected/g) ||
-                                         classList[i].match(/over/g) ||
-                                         classList[i].match(/dirty/g) ||
-                                         classList[i].match(/selectable/g) ||
-                                         classList[i].match(/focused/g) ||
-                                         classList[i].match(/focus/g);
-
-                    if(!knownSelectors){
-
+                    var ignoredAttribute = self.matchIgnored(classList[i]);
+                                          
+                    if(!ignoredAttribute){
                         selectorString += '.' + classList[i];
                     }
                 }
@@ -487,82 +509,96 @@ Traquer.prototype = {
 
     createSelector: function(traquer){
         var self             = this,
-            selectorString   = self.targetType + traquer.getSelector(self.attrs, self.classList, self.value, self.id),
-            firstFound       = document.querySelector(selectorString),
-            selectedElements = document.querySelectorAll(selectorString),
             domTree          = [],
-            selectedElement;
-        
-        if(selectedElements.length > 1){
+            selectorString   = self.targetType + traquer.getSelector(self.attrs, self.classList, self.value, self.id),
+            selectedElements = Array.prototype.slice.call(document.querySelectorAll(selectorString)),
+            firstFound       = selectedElements.filter(function(currentElement){ 
+                var currentBoundingBox = currentElement.getBoundingClientRect(),
+                    motionsBoundingBox = { height: 50, left: traquer.mousePosition.x, top: traquer.mousePosition.y, width: 50 },
+                    intersection       = traquer.getIntersection(currentElement, motionsBoundingBox);
 
-            var i;
-            for(i in selectedElements){
-                if(selectedElements.hasOwnProperty(i)){
+                if(intersection)
+                    return currentElement;
+            })[0];
+            
 
-                    var currentElement = selectedElements[i],
-                        intersection;
-                    
-                    // Needs to be reconstcructed out of motions (x,y) pair
-                    var currentBoundingBox = currentElement.getBoundingClientRect(),
-                        motionsBoundingBox = { height: 10, left: traquer.mousePosition.x, top: traquer.mousePosition.y, width: 10 };
-
-                    intersection = traquer.getIntersection(currentElement, motionsBoundingBox);
-                    
-                    if(intersection){
-
-                        while(currentElement != document.body ){
-                            var attributes = traquer.getAttributes(currentElement),
-                                classes    = traquer.getClassess(currentElement);
-                               
-
-                            if(attributes.length && classes.length){
-                                domTree.push(traquer.getSelector(attributes, classes, currentElement.value, currentElement.id));
-                                
-                            }
-
-                            if(currentElement.parentElement)
-                                currentElement = currentElement.parentNode;
-                           
-                        }
-
-                        //selectedElement = currentElement == firstFound ? currentElement.parentElement : currentElement;
-                    }
-                }
-            }
+        if(!firstFound){
+            return selectorString;
         }
 
-        /*if(selectedElement && selectedElement != firstFound){
-            var attributes = traquer.getAttributes(selectedElement),
-                classes    = traquer.getClassess(selectedElement);
-
+        while(firstFound != document.body ){
+            var attributes = traquer.getAttributes(firstFound),
+                classes    = traquer.getClassess(firstFound);
+               
             if(attributes.length && classes.length){
-                selectorString = traquer.getSelector(attributes, classes, selectedElement.value, selectedElement.id) + ' > ' + selectorString ; 
+                domTree.push(traquer.getSelector(attributes, classes, firstFound.value, firstFound.id)); 
             }
-        }*/
 
-        domTree = domTree.reverse();//.join(' > ');
-        
-        var izd = 'body ';
-        for(var i in domTree){
-            if(domTree.hasOwnProperty(i)){
-                var s = domTree[i];
-                izd += ' ' + s
-
-                var currentElement = document.querySelector(izd);
-
-                if(currentElement){
-                    var attributes = traquer.getAttributes(currentElement),
-                        classes    = traquer.getClassess(currentElement);
-
-                    selectorString = traquer.getSelector(attributes, classes, currentElement.value, currentElement.id);
-                }
-                else
-                    console.log(s);
-            }
+            if(firstFound.parentElement)
+                firstFound = firstFound.parentNode;  
         }
+
+        if(domTree.length){
+            selectorString = domTree.reverse().join(' ');
+        }   
+
         
-        //selectorString = self.targetType + traquer.getSelector(self.attrs, self.classList, self.value, self.id);
         return selectorString;
+    },
+
+    /**
+     * Creates xpath from given element
+     * Special thanks to Stijn De Ryck,
+     * original source at - 
+     * https://stackoverflow.com/questions/2661818/javascript-get-xpath-of-a-node
+     */
+    createXPathFromElement: function(elm) {
+        var self = this,
+            allNodes = document.getElementsByTagName('*');
+
+        for (var segs = []; elm && elm.nodeType == 1; elm = elm.parentNode) 
+        { 
+            if (elm.hasAttribute('id')) { 
+                    var uniqueIdCount = 0; 
+                    for (var n=0;n < allNodes.length;n++) { 
+                        if (allNodes[n].hasAttribute('id') && allNodes[n].id == elm.id) uniqueIdCount++; 
+                        if (uniqueIdCount > 1) break; 
+                    }; 
+                    if ( uniqueIdCount == 1) { 
+                        segs.unshift('id("' + elm.getAttribute('id') + '")'); 
+                        return segs.join('/'); 
+                    } else { 
+                        segs.unshift(elm.localName.toLowerCase() + '[@id="' + elm.getAttribute('id') + '"]'); 
+                    } 
+            } else if (elm.hasAttribute('class')) {
+                var classAttr = elm.getAttribute('class');
+
+                if(self.matchIgnored(classAttr)){
+                    classAttr = classAttr.split(' ');
+                    classAttr = classAttr.filter(function(f){
+                        if(!self.matchIgnored(f)){
+                            return f;
+                        }
+                    });
+
+                    classAttr = classAttr.join(' ');
+                }
+                
+
+                segs.unshift(elm.localName.toLowerCase() + '[@class="' + classAttr + '"]'); 
+            } else { 
+                for (var i = 1, sib = elm.previousSibling; sib; sib = sib.previousSibling) { 
+                    if (sib.localName == elm.localName)  i++; }; 
+                    segs.unshift(elm.localName.toLowerCase() + '[' + i + ']'); 
+            }; 
+        }; 
+        return segs.length ? '/' + segs.join('/') : null; 
+    },
+
+    lookupElementByXPath: function(path) { 
+        var evaluator = new XPathEvaluator(); 
+        var result = evaluator.evaluate(path, document.documentElement, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null); 
+        return  result.singleNodeValue; 
     },
 
     getIntersection: function(firstElement, secondElement) {
@@ -629,7 +665,7 @@ Traquer.prototype = {
         for(i in eventsInfo){
             if(eventsInfo.hasOwnProperty(i)){
                 var eventInfo = eventsInfo[i],
-                    similar = document.querySelector(eventInfo.selector);
+                    similar = this.lookupElementByXPath(eventInfo.selector);
                 
                 if(eventInfo.type == 'DOMSubtreeModified')
                     stopMaching = !stopMaching;

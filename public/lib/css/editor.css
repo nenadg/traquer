@@ -15,6 +15,12 @@
     margin-bottom: 4px;
 }
 
+.traquer-editor p.editor-event-selector {
+    max-height: 65px;
+    height: 65px;
+    overflow: auto;
+}
+
 .traquer-editor p.button {
 	border: 2px solid #28e;
     padding: 5px;
@@ -24,6 +30,8 @@
     float: left;
     margin-left: 10px;
     cursor: pointer;
+    background: rgba(255,255,255,0.9);
+    position: relative;
 }
 
 .traquer-editor p.button.red {
