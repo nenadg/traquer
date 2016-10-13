@@ -58,20 +58,21 @@ Traquer.getInstance = function(){
 Traquer.prototype = {
     
     getId: function(){
-        var recordedEvents = this.recordedEvents;
+        var recordedEvents = this.recordedEvents,
+            randomId = 'e_' + Math.random().toString(36).substring(3).substr(0, 8);
 
         if(recordedEvents && recordedEvents.length){
-            var randomId = 'e_' + Math.random().toString(36).substring(3).substr(0, 8),
-                same     = recordedEvents.filter(function(recordedEvent){
+           
+            var same = recordedEvents.filter(function(recordedEvent){
                     if(recordedEvent.tid == randomId)
-                        return same;
+                        return randomId;
                 });
             
             if(same.length)
-                this.getId();
-            else
-                return randomId;
+                randomId = this.getId();
         }
+
+        return randomId;
     },
 
     isEventObservable: function(evt) {
@@ -688,5 +689,25 @@ Traquer.prototype = {
         percentage = (elements / eventsInfo.length) * 100;
         
         return Math.round(percentage * 100) / 100;
+    },
+
+    //http://blog.stevenlevithan.com/archives/faster-than-innerhtml
+    replaceHtml: function(el, html) {
+        var oldEl = typeof el === "string" ? document.getElementById(el) : el;
+        /*@cc_on // Pure innerHTML is slightly faster in IE
+            oldEl.innerHTML = html;
+            return oldEl;
+        @*/
+        //var c = document.createDocumentFragment();
+        var newEl = oldEl.cloneNode(false);
+        newEl.innerHTML = html;
+
+       // c.appendChild(newEl);
+
+        
+        oldEl.parentNode.replaceChild(newEl, oldEl);
+        /* Since we just removed the old element from the DOM, return a reference
+        to the new element, which can be used to restore variable references. */
+        return newEl;
     }
 }

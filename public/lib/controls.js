@@ -14,7 +14,8 @@ Traquer.Controls = function(){
                     'track.css',
                     'editor.css',
                     'storage.css',
-                    'modal.css'];
+                    'modal.css',
+                    'heatmap.css'];
 
     Traquer.Controls.__instance = this;
 }
@@ -145,97 +146,115 @@ Traquer.Controls.prototype.timeline = function(){
 
         }
     }
+    var k = performance.now();
+    timelineContainer = traquer.replaceHtml(timelineContainer, timelineConstructor);
+    //timelineContainer.innerHTML = timelineConstructor;
 
-    timelineContainer.innerHTML = timelineConstructor;
+    //var loadInterval = setTimeout(function(){
+        //if(document.querySelectorAll('ol.traquer-timeline-container li')[events.length -1]){
+            self.addTimeLineEvents(timeLineNodes, lastTimeLine, last, tlcWidth);
+           // clearTimeout(loadInterval);
+            console.log('now', performance.now() - k);
+        //}
+        //console.log('not yet');
+    //}, 1500);
 
-    for(i in timeLineNodes){
-        if(timeLineNodes.hasOwnProperty(i)){
-            var timeLineNode      = timeLineNodes[i],
-                type              = timeLineNode.type,
-                id                = timeLineNode.id,
-                time              = timeLineNode.time,
-                selector          = timeLineNode.selector,
-                percentInTime     = parseInt(time / last * 100),
-                percentInTimeLine = parseInt(percentInTime * tlcWidth / 100),
-                currentEvent      = timelineContainer.querySelector('#' + id);
-           
-            if(lastTimeLine && 
-                (percentInTimeLine > lastTimeLine - 10 && percentInTimeLine < lastTimeLine + 10)){
-                
-                
-                var prevEvent     = currentEvent.previousSibling;
+    
+    
+    
+}
 
-                if(!prevEvent)
-                    continue;
+Traquer.Controls.prototype.addTimeLineEvents = function(timeLineNodes, lastTimeLine, last, tlcWidth){
+    var self = this, i, traquer = self.traquer;
+    for(i = 0; i < timeLineNodes.length; i++ ){
+        var timeLineNode      = timeLineNodes[i],
+            type              = timeLineNode.type,
+            id                = timeLineNode.id,
+            time              = timeLineNode.time,
+            selector          = timeLineNode.selector,
+            percentInTime     = parseInt(time / last * 100),
+            percentInTimeLine = parseInt(percentInTime * tlcWidth / 100),
+            currentEvent      = document.getElementById(id);
+        
+        //if(!currentEvent)
+         //   continue;
 
-                var currentStyle  = window.getComputedStyle(currentEvent),
-                    prevStyle     = window.getComputedStyle(prevEvent),
-                    currentTop    = Math.abs(Math.round(parseFloat(currentStyle.top.replace('px', '')) * 100 / 100)),
-                    prevTop       = Math.abs(Math.round(parseFloat(prevStyle.top.replace('px', '')) * 100 / 100)),
-                    topStyle      = 0 ;
+        if(lastTimeLine && 
+            (percentInTimeLine > lastTimeLine - 10 && percentInTimeLine < lastTimeLine + 10)){
+            
+            
+            var prevEvent     = currentEvent.previousSibling;
 
-                if((type == 'click' || type == 'keydown'  ||
-                    type == 'keyup'  || type =='keypress' ||
-                    type.indexOf('DOM') > -1 ||
-                    type.indexOf('select') > -1)){
+            if(!prevEvent)
+                continue;
 
-                        if(prevTop == currentTop)
-                            topStyle = currentTop + 8;
+            var currentStyle  = window.getComputedStyle(currentEvent),
+                prevStyle     = window.getComputedStyle(prevEvent),
+                currentTop    = Math.abs(Math.round(parseFloat(currentStyle.top.replace('px', '')) * 100 / 100)),
+                prevTop       = Math.abs(Math.round(parseFloat(prevStyle.top.replace('px', '')) * 100 / 100)),
+                topStyle      = 0 ;
 
-                        if(prevTop > currentTop)
-                            topStyle = prevTop - currentTop + 4;
-
-                        if(prevTop < currentTop)
-                            topStyle = currentTop - prevTop  + 4;
-
-                        topStyle = -topStyle;
-                        topStyle += 'px';     
-                }
-                else {
+            if((type == 'click' || type == 'keydown'  ||
+                type == 'keyup'  || type =='keypress' ||
+                type.indexOf('DOM') > -1 ||
+                type.indexOf('select') > -1)){
 
                     if(prevTop == currentTop)
-                        topStyle = currentTop + 18;
+                        topStyle = currentTop + 8;
 
                     if(prevTop > currentTop)
-                        topStyle = prevTop - currentTop + 38;
+                        topStyle = prevTop - currentTop + 4;
 
                     if(prevTop < currentTop)
-                        topStyle = currentTop - prevTop + 38;
+                        topStyle = currentTop - prevTop  + 4;
 
-                    topStyle -= 70;
-                    topStyle += 'px';
-                }
+                    topStyle = -topStyle;
+                    topStyle += 'px';     
+            }
+            else {
 
-                currentEvent.style.cssText += 'top: ' + topStyle + ';'; 
+                if(prevTop == currentTop)
+                    topStyle = currentTop + 18;
+
+                if(prevTop > currentTop)
+                    topStyle = prevTop - currentTop + 38;
+
+                if(prevTop < currentTop)
+                    topStyle = currentTop - prevTop + 38;
+
+                topStyle -= 70;
+                topStyle += 'px';
             }
 
-            currentEvent.addEventListener('click', function(id, type, time, selector, e){
-                var recordedEvent = this.recordedEvents.filter(function(re){
-                    return re.tid == id;
-                })[0];
-                
-                var li = e.target,
-                    others = li.parentNode.querySelectorAll('.selected'), i;
-
-                for(i in others){
-                    if(others.hasOwnProperty(i)){
-                        var selectedOther = others[i];
-                        // remove selected
-                        selectedOther.className = selectedOther.className.replace('selected', '');
-                    }
-                }
-
-                if(li.className.indexOf('selected') == -1)
-                    li.className += ' selected';
-                else
-                    li.className = li.className.replace('selected', '');
-                
-                self.editor(id, type, time, selector);
-
-            }.bind(traquer, id, type, time, selector));
-
-            lastTimeLine      = timeLineNode.lastTimeLine;
+            currentEvent.style.cssText += 'top: ' + topStyle + ';'; 
         }
+
+        currentEvent.addEventListener('click', function(id, type, time, selector, e){
+            var recordedEvent = this.recordedEvents.filter(function(re){
+                return re.tid == id;
+            })[0];
+            
+            var li = e.target,
+                others = li.parentNode.querySelectorAll('.selected'), i;
+
+            for(i in others){
+                if(others.hasOwnProperty(i)){
+                    var selectedOther = others[i];
+                    // remove selected
+                    selectedOther.className = selectedOther.className.replace('selected', '');
+                }
+            }
+
+            if(li.className.indexOf('selected') == -1)
+                li.className += ' selected';
+            else
+                li.className = li.className.replace('selected', '');
+            
+            self.editor(id, type, time, selector);
+
+        }.bind(traquer, id, type, time, selector));
+
+        lastTimeLine      = timeLineNode.lastTimeLine;
     }
 }
 

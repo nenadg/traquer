@@ -1,0 +1,41 @@
+.traquer-heatmap {
+	width: 100vw; 
+	height: 100vh; 
+	position: absolute; 
+	background: rgba(255,255,255,0.5); 
+	top:0px; 
+	left: 0px; 
+	z-index: 2147483640;
+}
+
+.traquer-heat-point {
+	border-radius: 100%;
+	display: block;
+	position: absolute;
+	z-index: 2147483641;
+	width: 2px;
+	height: 2px;
+}
+
+.traquer-heatmap .button {
+	border: 2px solid #28e;
+    padding: 5px;
+    border-radius: 4px;
+    width: 50px;
+    text-align: center;
+    cursor: pointer;
+    background: rgba(255,255,255,0.9);
+    position: absolute;
+    border: 2px solid rgba(153,187,34, 1);
+}
+
+.traquer-heatmap .button.close {
+   	bottom: 10px;
+    right: 10px;
+}
+
+.traquer-heatmap .button.play {
+   	bottom: 10px;
+    right: 70px;
+    border: 2px solid rgba(46, 173, 245, 0.75);
+}
