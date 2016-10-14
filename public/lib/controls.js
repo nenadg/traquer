@@ -81,7 +81,7 @@ Traquer.Controls.prototype.timeline = function(){
         traquer           = self.traquer,
         events            = traquer.recordedEvents,
         timelineContainer = document.querySelector('ol.traquer-timeline-container');
-
+    var perf = performance.now();
     if(!timelineContainer){
         timelineContainer           = document.createElement('ol');
         timelineContainer.className = 'traquer-timeline-container'; 
@@ -146,26 +146,18 @@ Traquer.Controls.prototype.timeline = function(){
 
         }
     }
-    var k = performance.now();
+    
     timelineContainer = traquer.replaceHtml(timelineContainer, timelineConstructor);
     //timelineContainer.innerHTML = timelineConstructor;
 
-    //var loadInterval = setTimeout(function(){
-        //if(document.querySelectorAll('ol.traquer-timeline-container li')[events.length -1]){
-            self.addTimeLineEvents(timeLineNodes, lastTimeLine, last, tlcWidth);
-           // clearTimeout(loadInterval);
-            console.log('now', performance.now() - k);
-        //}
-        //console.log('not yet');
-    //}, 1500);
 
-    
-    
-    
+    self.addTimeLineEvents(timeLineNodes, lastTimeLine, last, tlcWidth);
+         
+    console.log('now', performance.now() - perf);
 }
 
 Traquer.Controls.prototype.addTimeLineEvents = function(timeLineNodes, lastTimeLine, last, tlcWidth){
-    var self = this, i, traquer = self.traquer;
+    var self = this, i, traquer = self.traquer, inlineStyles      = [];
     for(i = 0; i < timeLineNodes.length; i++ ){
         var timeLineNode      = timeLineNodes[i],
             type              = timeLineNode.type,
@@ -175,23 +167,20 @@ Traquer.Controls.prototype.addTimeLineEvents = function(timeLineNodes, lastTimeL
             percentInTime     = parseInt(time / last * 100),
             percentInTimeLine = parseInt(percentInTime * tlcWidth / 100),
             currentEvent      = document.getElementById(id);
-        
-        //if(!currentEvent)
-         //   continue;
+            
 
         if(lastTimeLine && 
             (percentInTimeLine > lastTimeLine - 10 && percentInTimeLine < lastTimeLine + 10)){
-            
             
             var prevEvent     = currentEvent.previousSibling;
 
             if(!prevEvent)
                 continue;
 
-            var currentStyle  = window.getComputedStyle(currentEvent),
-                prevStyle     = window.getComputedStyle(prevEvent),
-                currentTop    = Math.abs(Math.round(parseFloat(currentStyle.top.replace('px', '')) * 100 / 100)),
-                prevTop       = Math.abs(Math.round(parseFloat(prevStyle.top.replace('px', '')) * 100 / 100)),
+            var currentStyle  = currentEvent.getAttribute('data-top') ||  window.getComputedStyle(currentEvent).top,
+                prevStyle     = prevEvent .getAttribute('data-top') || window.getComputedStyle(prevEvent).top,
+                currentTop    = Math.abs(Math.round(parseFloat(currentStyle.replace('px', '')) * 100 / 100)),
+                prevTop       = Math.abs(Math.round(parseFloat(prevStyle.replace('px', '')) * 100 / 100)),
                 topStyle      = 0 ;
 
             if((type == 'click' || type == 'keydown'  ||
@@ -214,21 +203,24 @@ Traquer.Controls.prototype.addTimeLineEvents = function(timeLineNodes, lastTimeL
             else {
 
                 if(prevTop == currentTop)
-                    topStyle = currentTop + 18;
+                    topStyle += currentTop + 8;
 
                 if(prevTop > currentTop)
-                    topStyle = prevTop - currentTop + 38;
+                    topStyle += prevTop - currentTop + 38;
 
                 if(prevTop < currentTop)
-                    topStyle = currentTop - prevTop + 38;
+                    topStyle += currentTop - prevTop + 38;
 
                 topStyle -= 70;
                 topStyle += 'px';
             }
 
-            currentEvent.style.cssText += 'top: ' + topStyle + ';'; 
+            currentEvent.setAttribute('data-top', topStyle);
+            
+            var inStyle = '.style-for-' + id + '{top:' + topStyle + '!important;}\n';
+            inlineStyles.push(inStyle);
         }
-
+        
         currentEvent.addEventListener('click', function(id, type, time, selector, e){
             var recordedEvent = this.recordedEvents.filter(function(re){
                 return re.tid == id;
@@ -255,6 +247,35 @@ Traquer.Controls.prototype.addTimeLineEvents = function(timeLineNodes, lastTimeL
         }.bind(traquer, id, type, time, selector));
 
         lastTimeLine      = timeLineNode.lastTimeLine;
+    }
+
+    var joinedStyle = inlineStyles.join('');
+    self.appendInnerStyles(joinedStyle, timeLineNodes);
+}
+
+Traquer.Controls.prototype.appendInnerStyles = function(inlineStyles, timeLineNodes){
+    var css = document.querySelector('#traquer-inline-styles'), i;
+    
+    if(!css){
+        css = document.createElement('style');
+        css.type = 'text/css';
+        css.id   = 'traquer-inline-styles';
+
+        css.appendChild(document.createTextNode(inlineStyles));
+        document.getElementsByTagName("head")[0].appendChild(css);
+    } 
+    else {
+        css.innerText = '';
+        css.appendChild(document.createTextNode(inlineStyles));
+    }
+
+    for(i = 0; i < timeLineNodes.length; i++ ){
+        var timeLineNode = timeLineNodes[i],
+            id           = timeLineNode.id,
+            currentEvent = document.getElementById(id);
+
+        currentEvent.className += ' style-for-' + id;
+        currentEvent.removeAttribute('data-top');
     }
 }
 
@@ -343,7 +364,7 @@ Traquer.Controls.prototype.reset = function(){
         traquer           = self.traquer,
         events            = traquer.recordedEvents,
         reset             = document.querySelector('.traquer-reset');
-
+        
     if(!reset){
         reset           = document.createElement('div');
         reset.className = 'traquer-reset';

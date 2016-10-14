@@ -103,7 +103,8 @@ Traquer.Storage.prototype.getHTMLList = function(rawList){
 Traquer.Storage.prototype.getButtons = function(){
     var tpl = [
         '<p style="float: right;" id="traquer-storage-run" class="button">Run selected</p>',
-        '<p style="float: right;" id="traquer-storage-delete" class="button red">Delete selected</p>'
+        '<p style="float: right;" id="traquer-storage-delete" class="button red">Delete selected</p>',
+        '<p style="float: right;" id="traquer-storage-heatmap" class="button">Heatmap selected</p>'
     ];
 
     return tpl.join('');
@@ -130,9 +131,10 @@ Traquer.Storage.prototype.getModal = function(rawList){
 
     modal.open.call(modal, 'Manage List', modalHtml);
 
-    var storageRun    = document.querySelector('#traquer-storage-run'),
-        storageDelete = document.querySelector('#traquer-storage-delete'),
-        override      = document.querySelector('#traquer-storage-override');
+    var storageRun     = document.querySelector('#traquer-storage-run'),
+        storageDelete  = document.querySelector('#traquer-storage-delete'),
+        storageHeatmap = document.querySelector('#traquer-storage-heatmap'),
+        override       = document.querySelector('#traquer-storage-override');
 
     storageRun.addEventListener('click', function(e){
         var form   = document.querySelector('#' + modal.id + ' form'),
@@ -194,6 +196,58 @@ Traquer.Storage.prototype.getModal = function(rawList){
         var renderedList = self.getHTMLList(self.getRawList());
 
         form.innerHTML   = renderedList;
+    });
+
+    storageHeatmap.addEventListener('click', function(e){
+        var heatmap = new Traquer.Heatmap(),
+            modalEl = document.querySelector('.traquer-modal');
+
+        if(modalEl && modalEl.parentElement){
+
+            var form   = document.querySelector('#' + modal.id + ' form'),
+                inputs = [].slice.call(form.querySelectorAll('input')),
+                data   = [];
+            
+            inputs.forEach(function(input) {
+                if(input.checked)
+                    data.push({ name: input.name, time: input.getAttribute('time') });
+            });
+
+            data = data.sort(function(a,b){
+                return a.time - b.time
+            });
+
+            var events = [], i;
+            for(i in data){
+                if(data.hasOwnProperty(i)){
+                    var name    = data[i].name,
+                        unit    = rawList.filter(function(c){
+                            return c.name == name;
+                        })[0];
+
+                    if(unit){
+                        var last = events[events.length - 1],
+                            time = 0;
+
+                        if(last)
+                            time = last.time;
+
+                        unit.records.forEach(function(record){
+                           
+                            record.time += time;
+                        });
+
+                        events = events.concat(unit.records);
+                    }
+                }
+            }
+
+            traquer.recordedEvents = events;
+
+            modalEl.style.cssText = 'opacity: 0.1';
+        }
+
+        heatmap.make();
     });
 
     override.addEventListener('click', function(e){

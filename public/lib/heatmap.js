@@ -94,10 +94,14 @@ Traquer.Heatmap.prototype.make = function(){
 
 Traquer.Heatmap.prototype.bindClose = function(){
     var close = document.querySelector('#traquer-heatmap-close'),
-        heatmapEl = document.querySelector('.traquer-heatmap');
+        heatmapEl = document.querySelector('.traquer-heatmap'),
+        modalEl = document.querySelector('.traquer-modal');
 
     close.addEventListener('click', function(e){
         document.body.removeChild(heatmapEl);
+
+        if(modalEl && modalEl.parentElement)
+            modalEl.style.cssText = 'opacity: 1';
     });
 }
 

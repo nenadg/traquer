@@ -434,7 +434,7 @@ Traquer.prototype = {
     },
     
     ignoredAttributes: [
-        'selected',
+        'select',
         'over',
         'dirty',
         'href',
@@ -443,8 +443,6 @@ Traquer.prototype = {
         'tabindex',
         'over',
         'dirty',
-        'selected',
-        'focused',
         'focus',
         'active',
         'pressed'
@@ -466,7 +464,7 @@ Traquer.prototype = {
         var self = this,
             selectorString = '';
         
-        if(attrs.length > 0){
+        if(attrs.length){
 
             var i;
             for(i in attrs){
@@ -486,7 +484,7 @@ Traquer.prototype = {
             }
         }
 
-        if(classList.length > 0){
+        if(classList.length){
 
             var i;
             for(i in classList){
@@ -531,9 +529,7 @@ Traquer.prototype = {
             var attributes = traquer.getAttributes(firstFound),
                 classes    = traquer.getClassess(firstFound);
                
-            if(attributes.length && classes.length){
-                domTree.push(traquer.getSelector(attributes, classes, firstFound.value, firstFound.id)); 
-            }
+            domTree.push(traquer.getSelector(attributes, classes, firstFound.value, firstFound.id)); 
 
             if(firstFound.parentElement)
                 firstFound = firstFound.parentNode;  

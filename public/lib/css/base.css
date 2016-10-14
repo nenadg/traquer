@@ -9,3 +9,8 @@
   box-shadow: 0 0 12px #dfdfdf;
   z-index: 2147483635;
 }
+
+.traquer-editor, .traquer-modal, .traquer-player, .traquer-recorder, .traquer-list, .traquer-timeline-container {
+	color: #404040;
+	font-family: 'Open Sans', 'Helvetica Neue', helvetica, arial, verdana, sans-serif;
+}
