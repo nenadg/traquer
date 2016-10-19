@@ -41,3 +41,11 @@
 .traquer-list .button.red {
   border: 2px solid #c72525;
 }
+
+.traquer-list .button.green {
+  border: 2px solid #16b603;
+}
+
+.traquer-list .button.left {
+  float: left !important;
+}

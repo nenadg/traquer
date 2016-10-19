@@ -153,8 +153,8 @@ Traquer.prototype = {
             type       : evt.type,
             id         : evt.target.id,
             targetType : evt.target.tagName? evt.target.tagName.toLowerCase(): null,
-            value      : evt.target.value || evt.target.text,
-            attrs      :  self.getAttributes(evt.target),
+            value      : encodeURIComponent(evt.target.value || evt.target.text),
+            attrs      : self.getAttributes(evt.target),
             classList  : self.getClassess(evt.target)
         }
     },
@@ -294,7 +294,7 @@ Traquer.prototype = {
             }
 
             var eventEmitter;
-
+            eventInfo.value = eventInfo.value ? decodeURIComponent(eventInfo.value): eventInfo.value;
             switch(eventInfo.type) {
                 case 'mousemove':
                 case 'mouseenter':

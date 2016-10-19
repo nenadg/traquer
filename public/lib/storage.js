@@ -13,7 +13,7 @@ Traquer.Storage = function(){
         loc = JSON.parse(loc);
 
         return {
-            location : location,
+            location : loc,
             records  : undefined,
             name     : undefined,
             time     : undefined
@@ -104,7 +104,7 @@ Traquer.Storage.prototype.getButtons = function(){
     var tpl = [
         '<p style="float: right;" id="traquer-storage-run" class="button">Run selected</p>',
         '<p style="float: right;" id="traquer-storage-delete" class="button red">Delete selected</p>',
-        '<p style="float: right;" id="traquer-storage-heatmap" class="button">Heatmap selected</p>'
+        '<p style="float: right;" id="traquer-storage-heatmap" class="button green left">Heatmap selected</p>'
     ];
 
     return tpl.join('');
@@ -207,7 +207,7 @@ Traquer.Storage.prototype.getModal = function(rawList){
             var form   = document.querySelector('#' + modal.id + ' form'),
                 inputs = [].slice.call(form.querySelectorAll('input')),
                 data   = [];
-            
+
             inputs.forEach(function(input) {
                 if(input.checked)
                     data.push({ name: input.name, time: input.getAttribute('time') });
@@ -243,6 +243,9 @@ Traquer.Storage.prototype.getModal = function(rawList){
             }
 
             traquer.recordedEvents = events;
+
+            if(!traquer.recordedEvents.length)
+                return;
 
             modalEl.style.cssText = 'opacity: 0.1';
         }
