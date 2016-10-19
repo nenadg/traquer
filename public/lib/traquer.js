@@ -354,6 +354,7 @@ Traquer.prototype = {
         }
 
         if(self.recordedEvents.indexOf(eventInfo) == self.recordedEvents.length -1){
+            console.log('Stopping.');
             self.stop();
         }
     },
@@ -519,27 +520,17 @@ Traquer.prototype = {
                 if(intersection)
                     return currentElement;
             })[0];
-            
 
         if(!firstFound){
             return selectorString;
         }
 
-        while(firstFound != document.body ){
-            var attributes = traquer.getAttributes(firstFound),
-                classes    = traquer.getClassess(firstFound);
-               
-            domTree.push(traquer.getSelector(attributes, classes, firstFound.value, firstFound.id)); 
-
-            if(firstFound.parentElement)
-                firstFound = firstFound.parentNode;  
-        }
-
-        if(domTree.length){
-            selectorString = domTree.reverse().join(' ');
-        }   
-
+        var attributes = traquer.getAttributes(firstFound),
+            classes    = traquer.getClassess(firstFound),
+            currentSelector = traquer.getSelector(attributes, classes, firstFound.value, firstFound.id);
         
+        selectorString  = currentSelector && currentSelector.length ? currentSelector : selectorString;
+
         return selectorString;
     },
 

@@ -41,6 +41,145 @@ Traquer.Storage.prototype.remove = function(name){
     localStorage.removeItem(name);
 }
 
+Traquer.Storage.prototype.hint = function(){
+    var self              = this,
+        traquer           = self.traquer,
+        events            = traquer.recordedEvents,
+        list              = document.querySelector('.traquer-list'),
+        rawList           = self.getRawList()
+
+    if(!list){
+        list              = document.createElement('div');
+        list.className    = 'traquer-list';
+        
+        document.body.appendChild(list);
+    }
+
+    var tpl = [
+        '<h3>You have ' + rawList.length + ' cases for this page</h3>',
+        '<p id="traquer-show-storage" class="button green">Manage list</p>',
+        '<p id="traquer-import-storage" class="button">Import</p>'
+    ].join('');
+
+    if(!rawList.length){
+        //document.body.removeChild(list);
+        var tpl = [
+            '<h3>You have ' + rawList.length + ' cases for this page</h3>',
+            '<p id="traquer-import-storage" class="button green">Import</p>'
+        ].join('');
+    }
+
+    list.innerHTML = tpl;
+
+    var showStorage     = list.querySelector('#traquer-show-storage'),
+        importToStorage = list.querySelector('#traquer-import-storage');
+        
+    showStorage && showStorage.addEventListener('click', function(e){
+        self.getModal(rawList);
+    });
+
+    importToStorage && importToStorage.addEventListener('click', function(e){
+        var upload = document.createElement('input');
+
+        upload.type = 'file';
+        upload.style.display = 'none';
+        upload.id = 'traquer-import';
+        upload.setAttribute('accept', '.json');
+
+        upload.addEventListener("change", function(e){
+            var file   = upload.files[0], 
+                reader = new FileReader();
+
+            reader.onload = function(e) { 
+                var result = e.target.result,
+                    unit   = self.lzw.decode(result);
+
+                if(!unit.location && !unit.time && !unit.records && !unit.name){
+                    console.log('[e] invalid format.');
+                    return;
+                }
+
+                var encoded = self.lzw.encode(unit);
+                console.log(self.lzw.getHumanReadableLength(encoded));
+
+                localStorage.setItem(unit.name, encoded);
+                self.hint();
+            }
+
+            reader.readAsText(file);
+        });
+
+        e.target.appendChild(upload);
+        
+        upload = document.querySelector('#traquer-import');
+
+        upload.click();
+    });
+}
+
+Traquer.Storage.prototype.exportCase = function(encoded){
+    var json       = "data:application/json;charset=utf-8," + encoded,
+        exportDate = new Date().toDateString().replace(/\s/g, '-');
+       
+    var link = document.createElement("a");
+    link.setAttribute("href", encodeURI(json));
+    link.setAttribute("download", "traquer_export_data_" + exportDate + ".json");
+    document.body.appendChild(link);
+
+    link.click();
+}
+
+Traquer.Storage.prototype.importCase = function(encoded){
+
+}
+
+Traquer.Storage.prototype.serialize = function(form){
+    var inputs = [].slice.call(form.querySelectorAll('input')),
+        data   = [];
+    
+    inputs.forEach(function(input) {
+        if(input.checked)
+            data.push({ name: input.name, time: input.getAttribute('time') });
+    });
+
+    data = data.sort(function(a,b){
+        return a.time - b.time
+    });
+
+    return data;
+}
+
+Traquer.Storage.prototype.joinRecords = function(data, rawList){
+    var events = [], 
+        i;
+
+    for(i in data){
+        if(data.hasOwnProperty(i)){
+            var name    = data[i].name,
+                unit    = rawList.filter(function(c){
+                    return c.name == name;
+                })[0];
+
+            if(unit){
+                var last = events[events.length - 1],
+                    time = 0;
+
+                if(last)
+                    time = last.time;
+
+                unit.records.forEach(function(record){
+                   
+                    record.time += time;
+                });
+
+                events = events.concat(unit.records);
+            }
+        }
+    }
+
+    return events;
+}
+
 Traquer.Storage.prototype.getRawList = function(){
     var self = this, 
         keys = [], 
@@ -56,10 +195,11 @@ Traquer.Storage.prototype.getRawList = function(){
         if(keys.hasOwnProperty(i)){
             var property = localStorage.getItem(keys[i]);
             property = self.lzw.decode(property);
-
-            if(property.location.href == window.location.href && 
-               property.location.pathname == window.location.pathname &&
-               property.location.hash == window.location.hash){
+          
+            if(property.location.host == window.location.host && 
+                property.location.port == window.location.port && 
+                property.location.hash == window.location.hash &&
+                property.location.origin == window.location.origin){
                     list.push(property);
             }
         }
@@ -102,9 +242,10 @@ Traquer.Storage.prototype.getHTMLList = function(rawList){
 
 Traquer.Storage.prototype.getButtons = function(){
     var tpl = [
-        '<p style="float: right;" id="traquer-storage-run" class="button">Run selected</p>',
-        '<p style="float: right;" id="traquer-storage-delete" class="button red">Delete selected</p>',
-        '<p style="float: right;" id="traquer-storage-heatmap" class="button green left">Heatmap selected</p>'
+        '<p style="float: right;" id="traquer-storage-run" class="button green">Run selected</p>',
+        '<p style="float: right;" id="traquer-storage-delete" class="button red left">Delete selected</p>',
+        '<p style="float: right;" id="traquer-storage-heatmap" class="button">Heatmap selected</p>',
+        '<p style="float: right;" id="traquer-storage-export" class="button left">Export selected</p>'
     ];
 
     return tpl.join('');
@@ -134,47 +275,14 @@ Traquer.Storage.prototype.getModal = function(rawList){
     var storageRun     = document.querySelector('#traquer-storage-run'),
         storageDelete  = document.querySelector('#traquer-storage-delete'),
         storageHeatmap = document.querySelector('#traquer-storage-heatmap'),
+        storageExport  = document.querySelector('#traquer-storage-export'),
         override       = document.querySelector('#traquer-storage-override');
 
     storageRun.addEventListener('click', function(e){
         var form   = document.querySelector('#' + modal.id + ' form'),
-            inputs = [].slice.call(form.querySelectorAll('input')),
-            data   = [];
+            data   = self.serialize(form),
+            events = self.joinRecords(data, rawList);
         
-        inputs.forEach(function(input) {
-            if(input.checked)
-                data.push({ name: input.name, time: input.getAttribute('time') });
-        });
-
-        data = data.sort(function(a,b){
-            return a.time - b.time
-        });
-
-        var events = [], i;
-        for(i in data){
-            if(data.hasOwnProperty(i)){
-                var name    = data[i].name,
-                    unit    = rawList.filter(function(c){
-                        return c.name == name;
-                    })[0];
-
-                if(unit){
-                    var last = events[events.length - 1],
-                        time = 0;
-
-                    if(last)
-                        time = last.time;
-
-                    unit.records.forEach(function(record){
-                       
-                        record.time += time;
-                    });
-
-                    events = events.concat(unit.records);
-                }
-            }
-        }
-
         traquer.recordedEvents = events;
         var controls = Traquer.Controls.getInstance();
 
@@ -203,44 +311,9 @@ Traquer.Storage.prototype.getModal = function(rawList){
             modalEl = document.querySelector('.traquer-modal');
 
         if(modalEl && modalEl.parentElement){
-
             var form   = document.querySelector('#' + modal.id + ' form'),
-                inputs = [].slice.call(form.querySelectorAll('input')),
-                data   = [];
-
-            inputs.forEach(function(input) {
-                if(input.checked)
-                    data.push({ name: input.name, time: input.getAttribute('time') });
-            });
-
-            data = data.sort(function(a,b){
-                return a.time - b.time
-            });
-
-            var events = [], i;
-            for(i in data){
-                if(data.hasOwnProperty(i)){
-                    var name    = data[i].name,
-                        unit    = rawList.filter(function(c){
-                            return c.name == name;
-                        })[0];
-
-                    if(unit){
-                        var last = events[events.length - 1],
-                            time = 0;
-
-                        if(last)
-                            time = last.time;
-
-                        unit.records.forEach(function(record){
-                           
-                            record.time += time;
-                        });
-
-                        events = events.concat(unit.records);
-                    }
-                }
-            }
+                data   = self.serialize(form),
+                events = self.joinRecords(data, rawList);
 
             traquer.recordedEvents = events;
 
@@ -251,6 +324,24 @@ Traquer.Storage.prototype.getModal = function(rawList){
         }
 
         heatmap.make();
+    });
+
+    storageExport.addEventListener('click', function(e){
+        var form   = document.querySelector('#' + modal.id + ' form'),
+            data   = self.serialize(form),
+            events = self.joinRecords(data, rawList);
+
+        var unit    = self.unit(),
+            name    = 'traquer_' + Math.random().toString(36).substring(3).substr(0, 8);
+
+        unit.records = events;
+        unit.name    = name;
+        unit.time    = Date.now();
+
+        var encoded = self.lzw.encode(unit);
+
+        console.log(self.lzw.getHumanReadableLength(encoded));
+        self.exportCase(encoded);
     });
 
     override.addEventListener('click', function(e){
@@ -265,36 +356,5 @@ Traquer.Storage.prototype.getModal = function(rawList){
     });
 }
 
-Traquer.Storage.prototype.hint = function(){
-    var self              = this,
-        traquer           = self.traquer,
-        events            = traquer.recordedEvents,
-        list              = document.querySelector('.traquer-list'),
-        rawList           = self.getRawList()
 
-    if(!list){
-        list              = document.createElement('div');
-        list.className    = 'traquer-list';
-        
-        document.body.appendChild(list);
-    }
-
-    if(!rawList.length){
-        document.body.removeChild(list);
-        return;
-    }
-
-    var tpl = [
-        '<h3>You have ' + rawList.length + ' cases for this page</h3>',
-        '<p id="traquer-show-storage" class="button">Manage list</p>'
-    ].join('');
-
-    list.innerHTML = tpl;
-
-    var showStorage = list.querySelector('#traquer-show-storage');
-        
-    showStorage.addEventListener('click', function(e){
-        self.getModal(rawList);
-    });
-}
 
