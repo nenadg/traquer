@@ -8,6 +8,10 @@ document.addEventListener('DOMContentLoaded', function() {
         controls       = new Traquer.Controls(),
     	storage        = new Traquer.Storage();
 
+    traquer.config     = {
+        host: window.location.origin
+    }
+
     controls.loadStyles();
  	
     recorder.addEventListener('click', controls.recording.bind(this, controls));

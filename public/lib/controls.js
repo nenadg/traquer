@@ -26,6 +26,8 @@ Traquer.Controls.getInstance = function(){
 
 Traquer.Controls.prototype.loadStyles = function(){
     var self   = this,
+        traquer = self.traquer,
+        config = traquer.config,
         head   = document.head,
         styles = head.querySelectorAll('link'),
         loaded = false, i;
@@ -44,7 +46,7 @@ Traquer.Controls.prototype.loadStyles = function(){
         var stylesheet = document.createElement('link');
         stylesheet.rel = 'stylesheet';
         stylesheet.type = 'text/css';
-        stylesheet.href  = 'http://localhost:3008/traquer.min.css';
+        stylesheet.href  = config.host + '/traquer.min.css';
         document.head.appendChild(stylesheet);
     }
 }
