@@ -97,4 +97,5 @@ Traquer.Lzw.prototype.decode = function (data) {
 	return JSON.parse(out);
 }
 
-
+if(module && module.exports)
+	module.exports = Traquer.Lzw;

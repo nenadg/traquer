@@ -10,6 +10,7 @@ var http           = require('http'),
     session        = require('express-session'),
     bodyParser     = require('body-parser'),
     multer         = require('multer'),
+    runner         = require('./runner/generator'),
     secret         = Math.random().toString(36).substring(3, 12);
     
 // configuration
@@ -20,12 +21,20 @@ app.use(session({ resave: true, saveUninitialized: true, secret: secret }));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false /*true*/ }));
 app.use(multer());
-app.use(express.static(path.join(__dirname, 'public')));
 
-app.get('*', (res, req, next) => {
-    res.header('X-XSS-Protection' ,  '1; mode=block');
+
+app.get('/start', (req, res, next) => {
+    runner.create();
+    res.send('Starting...');
+    next();
+});
+
+app.get('/*', (req, res, next) => {
+    req.header('X-XSS-Protection' ,  '1; mode=block');
     next(); 
 });
+
+app.use(express.static(path.join(__dirname, 'public')));
 
 var server    = http.createServer(app),
     io        = require('socket.io').listen(server, { log: false });

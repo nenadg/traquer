@@ -1,0 +1,15 @@
+{
+	"name": "traquer-testrunner",
+	"version": "0.0.1",
+	"private": true,
+	"author":"Nenad Golubović <me@nenadg.com>",
+	"description":"Web testing automation with jasmine-node and selenium-webdriver",
+	"scripts": {
+		"start": "jasmine-node master.spec.js --nohelpers --captureExceptions --verbose --color --forceexit --junitreport --output reports/"
+	},
+	"dependencies": {
+		"selenium-webdriver": "2.53.3",
+		"jasmine-node": "1.14.5",
+		"chromedriver": "2.24.1"
+	}
+}

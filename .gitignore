@@ -28,3 +28,9 @@ node_modules
 
 # non-oss parts
 public/examples/admin-dashboard
+
+# runner
+runner/node_modules
+runner/cases
+runner/reports
+runner/spec
