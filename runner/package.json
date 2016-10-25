@@ -5,7 +5,7 @@
 	"author":"Nenad Golubović <me@nenadg.com>",
 	"description":"Web testing automation with jasmine-node and selenium-webdriver",
 	"scripts": {
-		"start": "jasmine-node master.spec.js --nohelpers --captureExceptions --verbose --color --forceexit --junitreport --output reports/"
+		"start": "jasmine-node master.spec.js --nohelpers --color --junitreport --output reports/"
 	},
 	"dependencies": {
 		"selenium-webdriver": "2.53.3",

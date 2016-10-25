@@ -1,21 +1,14 @@
 // fake Traquer obj
 global.Traquer     = {};
 
-var casesDirectory = './runner/cases/',
+var casesDirectory = './cases/',
     specsDirectory = './spec/',
     path           = require('path'),
     fs             = require('fs'),
     lzw            = new require('../public/lib/lzw.js')(),
     cases          = [];
 
-fs.readdir(casesDirectory, (err, files) => {
-    if(err)
-        throw err;
 
-    files.forEach(file => {
-        cases.push(file);
-    });
-})
 
 var Generator = function(){
     if (!(this instanceof Generator)) {
@@ -27,100 +20,133 @@ Generator.prototype.factory = {
     defineCase  : function() { return 'it("{{name}}", function (done) { {{inner}} });' },
     findElement : function() { return 'webdriver.By.xpath("{{xpath}}");' }, //'client.findElement(webdriver.By.xpath("{{xpath}}"));' },
     runs        : function() { return 'runs(function () { {{inner}} })' },
-    waits       : function() { return 'waitsFor(function(){ {{inner}} }, "waiting {{el}} ...", 1000);' },
+    waits       : function() { return 'waitsFor(function(){ {{inner}} }, "waiting {{el}} ...", 10);' },
     get         : function() { return 'client.get("{{location}}");' }
 }
 
 Generator.prototype.create = function(){
     var self  = this,
         names = [],
+        parsedCases = -1,
         i;
 
-    for(i in cases){
-        if(cases.hasOwnProperty(i)){
-            var tcase          = cases[i],
-                definitionName = path.join(__dirname, specsDirectory + tcase + '.spec.js');
-            
-            names.push(definitionName);
+    fs.readdir(path.join(__dirname, casesDirectory), (err, files) => {
+        if(err)
+            throw err;
 
-            fs.readFile(casesDirectory + tcase, 'utf8', (err, compressed) => {
-                if (err) throw err;
-                
-                var decompressed = lzw.decode(compressed),
-                    frecord      = decompressed,
-                    location     = frecord.location.href,
-                    records      = frecord.records,
-                    factory      = self.factory,
-                    spec         = '',
-                    inner        = '',
-                    testCase     = '',
-                    j;
+        files.forEach(file => {
+            cases.push(file);
+        });
 
-                
+        parsedCases = cases.length;
 
-                inner += '\n\t' + factory.get().replace('{{location}}', location) + '\n';
+        for(i in cases){
+            if(cases.hasOwnProperty(i)){
+                var tcase          = cases[i],
+                    definitionName = path.join(__dirname, specsDirectory + tcase + '.spec.js');
 
-                for(j in records){
-                    if(records.hasOwnProperty(j)){
-                        var record   = records[j],
-                            selector = record.selector.replace(/\"/igm, '\'');
+                fs.readFile(path.join(__dirname, casesDirectory + tcase), 'utf8', 
+                    (function(definitionName, index, err, compressed) {
+                        if (err) throw err;
+                            
+                        var decompressed = lzw.decode(compressed),
+                            frecord      = decompressed,
+                            location     = frecord.location.href,
+                            records      = frecord.records,
+                            factory      = self.factory,
+                            spec         = '',
+                            inner        = '',
+                            testCase     = '',
+                            allowedTypes = ['click', 'mouseover', 'mouseout', 'keypress'],
+                            j;
+                            
+                        var caseOne = factory.defineCase().replace('{{name}}', 'Load page');
 
-                        var definedCase = factory.defineCase().replace('{{name}}', 'el_' + j);
+                        testCase = 'describe("' + i + ' test case", function(){';
 
-                        inner += '\n\t';
-                        inner += 'var el_' + j + ' = ' + factory.findElement().replace('{{xpath}}', selector);
-                        inner += '\n\t';
+                        if(index == 0){
+                            var caseOneInner = '\n\t' + factory.get().replace('{{location}}', location) + '\n';
+                            caseOneInner += '\tsetTimeout(function(){ expect(true).toBe(true); done(); }, 3000);\n';
+                            caseOne = caseOne.replace('{{inner}}', caseOneInner);
+                            testCase += '\n' + caseOne + '\n';
+                        }
 
-                        var innerWait = factory.waits().replace('{{inner}}', '\n\t\treturn client.findElement(el_' + j + ') != undefined; ')
-                                                       .replace('{{el}}', 'el_' + j);
+                        for(j in records){
+                            if(records.hasOwnProperty(j)){
+                                var record   = records[j],
+                                    type     = record.type;
+                                
+                                // don't go for uninteresting event types
+                                if(allowedTypes.indexOf(type) == -1)
+                                    continue;
 
-                        inner += '\n\t';
-                        inner += innerWait;
-                        inner += '\n\t';
+                                // don't go if selector is missing
+                                if(!record.selector)
+                                    continue;
 
-                        var innerRun = 'expect(el_' + j + ').toBe(true);';
+                                var selector    = record.selector.replace(/\"/igm, '\''),
+                                    definedCase = factory.defineCase().replace('{{name}}', 'Find el_' + j + '');
 
-                        inner += '\n\t';
-                        inner += factory.runs().replace('{{inner}}', innerRun);
-                        inner += '\n';
+                                inner += '\n\t';
+                                inner += ['var locator = ' + factory.findElement().replace('{{xpath}}', selector),
+                                          'var el = client.findElement(locator);',
+                                          (type == 'click' ? 'el.click();' :''),
+                                          (type == 'keypress' ? 'el.sendKeys(1) ' : ''),
+                                          'expect(el).toBeTruthy(); done();\n'
+                                          //'\t\twaitsFor(\'\', function(){ expect2(el).toExist();  }, 20);', //
 
-                        definedCase = definedCase.replace('{{inner}}', inner);
+                                         ].join('\n\t');
 
-                        testCase += '\n' + definedCase + '\n';
-                        inner = '';
-                    }
-                }
+                                definedCase = definedCase.replace('{{inner}}', inner);
 
-                /*inner += ['\n\twaitsFor(function () {\n',
-                        '\t\treturn true;\n',
-                '\t}, \'So we know page is loaded\', 2000);\n'].join('');*/
+                                testCase += '\n' + definedCase + '\n';
+                                inner = '';
+                            }
+                        }
+                        
+                        //testCase += factory.defineCase().replace('{{name}}', 'Cleanup').replace('{{inner}}', '\nclient.quit();' );
 
-                
-                
-                fs.writeFile(definitionName, testCase, 'utf8', function(err){
-                    if (err) throw err;
-                    console.log('It\'s saved!');
-                });
-            });
+                        // close case
+                        testCase += '\n});';
+
+                        var specName = definitionName;
+
+                        fs.writeFile(specName, testCase, 'utf8', function(err){
+
+                            parsedCases--;
+
+                            if (err) throw err;
+                            names.push(specName);
+                            
+                            console.log('Saved spec - ', specName);
+                        });
+                }).bind(null, definitionName, i));
+            }
         }
-    }
+
+    });
 
     var requires = [];
 
-    for(i in names){
-        if(names.hasOwnProperty(i)){
-            var name = names[i];
+    var parseInterval = setInterval(function(){
+        
+        if(parsedCases == 0){
 
-            requires.push('require("' + name + '");');
+            clearInterval(parseInterval);
+            for(i in names){
+                if(names.hasOwnProperty(i)){
+                    var name = names[i];
+
+                    requires.push('require("' + name + '");\n');
+                }
+            }
+
+            fs.writeFile(path.join(__dirname, 'definitions.spec.js'), requires.join(''), 'utf8', function(err){
+                if (err) throw err;
+                    console.log('Definitions spec updated.');
+            });
         }
-    }
-
-    fs.writeFile(path.join(__dirname, 'definitions.spec.js'), requires.join(''), 'utf8', function(err){
-        if (err) throw err;
-            console.log('Definitions spec updated.');
-    });
-
-
+    }, 200);
 }
 
 module.exports = new Generator();
