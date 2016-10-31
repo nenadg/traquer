@@ -36,3 +36,11 @@ This is WIP, some features don't work as they should (jasmine/seleinum automatio
 
 
 Contribution/interest is welcomed.
+
+# Credits/Contributors
+I won't forget to mention and thank these great guys who contributed to make this available:
+
+- Bojan Dević (https://github.com/bojandevic) who refactored initial version of this tool (which was messy load of crap), which made further development available
+- Mirko Kukoleča (https://github.com/mkukoleca) who was idea originator, some two years ago
+- Goran Smiljanić (https://github.com/sgoran) for early reviews, and great ideas about how this should look and work,
+- ... (more people to come)
